@@ -1,0 +1,4298 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="ElevenLabs API Terminal - Multi-Feature Voice & Audio Interface">
+  <title>ElevenLabs API Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Share+Tech+Mono&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg: #000408;
+      --bg2: #010a14;
+      --card-bg: rgba(2, 12, 25, 0.75);
+      --card-border: rgba(30, 143, 255, 0.12);
+      --blue: #1e8fff;
+      --cyan: #00d4ff;
+      --blue-dark: #0d3a6e;
+      --blue-mid: #1a6bbd;
+      --green: #00ffaa;
+      --red: #ff3355;
+      --yellow: #ffcc00;
+      --purple: #a855f7;
+      --text: #c8d6e5;
+      --text2: #6b7d94;
+      --text-dim: #2d3d52;
+      --font: 'JetBrains Mono', 'Share Tech Mono', monospace;
+      --glow-blue: 0 0 10px rgba(30, 143, 255, 0.3), 0 0 30px rgba(30, 143, 255, 0.1);
+      --glow-cyan: 0 0 10px rgba(0, 212, 255, 0.3), 0 0 30px rgba(0, 212, 255, 0.1);
+      --tr-fast: 0.2s ease;
+      --tr-med: 0.4s ease;
+      --tr-slow: 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      --radius: 6px;
+    }
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      height: 100%
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    #bg-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .scanlines {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.06) 2px, rgba(0, 0, 0, 0.06) 4px);
+      animation: scan-scroll 10s linear infinite;
+    }
+
+    @keyframes scan-scroll {
+      to {
+        background-position: 0 100vh
+      }
+    }
+
+    .wm-center {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: var(--font);
+      font-size: 12vw;
+      font-weight: 700;
+      letter-spacing: 2vw;
+      color: rgba(30, 143, 255, 0.03);
+      text-shadow: 0 0 80px rgba(0, 212, 255, 0.02);
+      z-index: 1;
+      pointer-events: none;
+      user-select: none;
+      animation: wm-flicker 6s ease-in-out infinite;
+    }
+
+    .wm-corner {
+      position: fixed;
+      bottom: 14px;
+      right: 18px;
+      font-family: var(--font);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 4px;
+      color: rgba(0, 212, 255, 0.1);
+      text-shadow: 0 0 6px rgba(0, 212, 255, 0.12);
+      z-index: 100;
+      pointer-events: none;
+      user-select: none;
+      animation: wm-glitch 5s steps(2) infinite;
+    }
+
+    .wm-logo {
+      position: fixed;
+      top: 16px;
+      left: 20px;
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: rgba(0, 212, 255, 0.18);
+      text-shadow: 0 0 8px rgba(0, 212, 255, 0.12);
+      z-index: 100;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .wm-logo::before {
+      content: '◆ ';
+      font-size: 9px;
+    }
+
+    @keyframes wm-flicker {
+
+      0%,
+      93%,
+      100% {
+        opacity: 1
+      }
+
+      94% {
+        opacity: .5
+      }
+
+      95% {
+        opacity: 1
+      }
+
+      96% {
+        opacity: .3
+      }
+
+      97% {
+        opacity: 1
+      }
+    }
+
+    @keyframes wm-glitch {
+
+      0%,
+      90%,
+      100% {
+        transform: translateX(0);
+        opacity: .1
+      }
+
+      92% {
+        transform: translateX(-2px);
+        opacity: .06
+      }
+
+      94% {
+        transform: translateX(1px);
+        opacity: .13
+      }
+    }
+
+    /* Boot */
+    .boot-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--bg);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      transition: opacity .6s ease, visibility .6s ease;
+    }
+
+    .boot-overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .boot-text {
+      font-size: 13px;
+      color: var(--cyan);
+      text-align: left;
+      max-width: 550px;
+      padding: 20px;
+      line-height: 1.8;
+    }
+
+    .boot-line {
+      opacity: 0;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .boot-line.visible {
+      opacity: 1;
+    }
+
+    .boot-line.dim {
+      color: var(--text-dim)
+    }
+
+    .boot-line.cyan {
+      color: var(--cyan)
+    }
+
+    .boot-line.blue {
+      color: var(--blue)
+    }
+
+    .boot-line.green {
+      color: var(--green)
+    }
+
+    .fp-section {
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      opacity: 0;
+      transition: opacity .5s;
+    }
+
+    .fp-section.visible {
+      opacity: 1;
+    }
+
+    .fp-svg {
+      width: 46px;
+      height: 46px;
+      stroke: var(--cyan);
+      fill: none;
+      stroke-width: 1;
+      stroke-dasharray: 300;
+      stroke-dashoffset: 300;
+      animation: fp-draw 2s ease forwards;
+    }
+
+    @keyframes fp-draw {
+      to {
+        stroke-dashoffset: 0
+      }
+    }
+
+    .fp-label {
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--cyan);
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    /* Secure overlay */
+    .secure-ov {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 4, 8, 0.94);
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .5s, visibility .5s;
+    }
+
+    .secure-ov.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .secure-lock {
+      width: 56px;
+      height: 56px;
+      margin-bottom: 18px;
+      position: relative;
+    }
+
+    .secure-lock svg {
+      width: 100%;
+      height: 100%;
+      stroke: var(--cyan);
+      fill: none;
+      stroke-width: 1.5;
+      filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.4));
+    }
+
+    .s-ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 60px;
+      height: 60px;
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: ring-exp 1.5s ease-out infinite;
+    }
+
+    .s-ring:nth-child(2) {
+      animation-delay: .5s
+    }
+
+    .s-ring:nth-child(3) {
+      animation-delay: 1s
+    }
+
+    @keyframes ring-exp {
+      from {
+        width: 50px;
+        height: 50px;
+        opacity: .5
+      }
+
+      to {
+        width: 130px;
+        height: 130px;
+        opacity: 0
+      }
+    }
+
+    .s-text {
+      font-size: 13px;
+      color: var(--cyan);
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      text-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+      animation: s-pulse 1s ease-in-out infinite alternate;
+    }
+
+    .s-sub {
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      margin-top: 6px;
+    }
+
+    @keyframes s-pulse {
+      from {
+        opacity: .7
+      }
+
+      to {
+        opacity: 1
+      }
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .3
+      }
+    }
+
+    /* Main */
+    .main {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 580px;
+      padding: 20px;
+      margin: 40px auto;
+    }
+
+    /* Card */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 255, 255, .02);
+      overflow: hidden;
+      transition: box-shadow var(--tr-med), border-color var(--tr-med);
+    }
+
+    .card.ok {
+      border-color: rgba(0, 212, 255, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .5), 0 0 25px rgba(0, 212, 255, .06);
+    }
+
+    .card.err {
+      border-color: rgba(255, 51, 85, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, .5), 0 0 25px rgba(255, 51, 85, .06);
+    }
+
+    .card-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 16px;
+      background: rgba(0, 0, 0, .4);
+      border-bottom: 1px solid rgba(255, 255, 255, .03);
+    }
+
+    .dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dots span {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+    }
+
+    .d-r {
+      background: #ff5f56
+    }
+
+    .d-y {
+      background: #ffbd2e
+    }
+
+    .d-g {
+      background: #27c93f
+    }
+
+    .card-title {
+      font-size: 10px;
+      color: var(--text2);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .card-ver {
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    .card-body {
+      padding: 24px 20px 20px;
+    }
+
+    /* ASCII header */
+    .ascii-hdr {
+      text-align: center;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      color: var(--blue);
+      margin-bottom: 4px;
+      text-shadow: 0 0 20px rgba(30, 143, 255, 0.3), 0 0 60px rgba(30, 143, 255, 0.1);
+      animation: hdr-pulse 3s ease-in-out infinite;
+    }
+
+    .ascii-hdr.glitch {
+      animation: glitch-text .3s ease infinite;
+    }
+
+    .ascii-sub {
+      text-align: center;
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      margin-bottom: 22px;
+    }
+
+    @keyframes hdr-pulse {
+
+      0%,
+      100% {
+        text-shadow: 0 0 20px rgba(30, 143, 255, .3), 0 0 60px rgba(30, 143, 255, .1)
+      }
+
+      50% {
+        text-shadow: 0 0 30px rgba(30, 143, 255, .5), 0 0 80px rgba(30, 143, 255, .15)
+      }
+    }
+
+    @keyframes glitch-text {
+      0% {
+        text-shadow: 2px 0 var(--red), -2px 0 var(--cyan)
+      }
+
+      25% {
+        text-shadow: -2px 0 var(--red), 2px 0 var(--cyan)
+      }
+
+      50% {
+        text-shadow: 2px 2px var(--red), -1px -1px var(--cyan)
+      }
+
+      75% {
+        text-shadow: -1px 0 var(--red), 1px 0 var(--cyan)
+      }
+
+      100% {
+        text-shadow: 0 0 var(--red), 0 0 var(--cyan)
+      }
+    }
+
+    /* Status */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
+      margin-bottom: 18px;
+      background: rgba(0, 0, 0, .3);
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, .02);
+    }
+
+    .s-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      flex-shrink: 0;
+      transition: all var(--tr-med);
+    }
+
+    .s-dot.on {
+      background: var(--cyan);
+      box-shadow: 0 0 8px rgba(0, 212, 255, .5);
+    }
+
+    .s-dot.warn {
+      background: var(--yellow);
+      box-shadow: 0 0 8px rgba(255, 204, 0, .5);
+      animation: blink 1s infinite;
+    }
+
+    .s-dot.bad {
+      background: var(--red);
+      box-shadow: 0 0 8px rgba(255, 51, 85, .5);
+      animation: blink .5s infinite;
+    }
+
+    .s-dot.proc {
+      background: var(--blue);
+      box-shadow: 0 0 8px rgba(30, 143, 255, .5);
+      animation: blink 1s infinite;
+    }
+
+    .s-label {
+      font-size: 10px;
+      color: var(--text2);
+      letter-spacing: 1px;
+      transition: color var(--tr-med);
+    }
+
+    /* Input */
+    .inp-group {
+      margin-bottom: 16px;
+    }
+
+    .inp-lbl {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10px;
+      color: var(--text2);
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .inp-lbl .ic {
+      color: var(--cyan);
+      font-size: 12px;
+    }
+
+    .inp-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .inp-pre {
+      position: absolute;
+      left: 12px;
+      color: var(--blue);
+      font-size: 12px;
+      pointer-events: none;
+      opacity: .6;
+    }
+
+    .inp-field {
+      width: 100%;
+      padding: 11px 40px 11px 28px;
+      background: rgba(0, 0, 0, .4);
+      border: 1px solid rgba(30, 143, 255, .1);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 12px;
+      letter-spacing: .5px;
+      outline: none;
+      transition: border-color var(--tr-fast), box-shadow var(--tr-fast);
+    }
+
+    .inp-field::placeholder {
+      color: var(--text-dim);
+      font-size: 11px;
+    }
+
+    .inp-field:focus {
+      border-color: rgba(0, 212, 255, .3);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, .05), 0 0 12px rgba(0, 212, 255, .04);
+    }
+
+    .inp-field.err {
+      border-color: rgba(255, 51, 85, .4);
+      box-shadow: 0 0 0 2px rgba(255, 51, 85, .05);
+      animation: shake .4s ease;
+    }
+
+    .inp-field.ok {
+      border-color: rgba(0, 212, 255, .4);
+      box-shadow: 0 0 0 2px rgba(0, 212, 255, .06);
+    }
+
+    @keyframes shake {
+
+      0%,
+      100% {
+        transform: translateX(0)
+      }
+
+      20% {
+        transform: translateX(-5px)
+      }
+
+      40% {
+        transform: translateX(4px)
+      }
+
+      60% {
+        transform: translateX(-3px)
+      }
+
+      80% {
+        transform: translateX(2px)
+      }
+    }
+
+    .tog-vis {
+      position: absolute;
+      right: 8px;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      padding: 3px;
+      display: flex;
+      transition: color var(--tr-fast);
+      border-radius: 3px;
+    }
+
+    .tog-vis:hover {
+      color: var(--cyan);
+    }
+
+    .tog-vis svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(30, 143, 255, .1), rgba(0, 212, 255, .06));
+      border: 1px solid rgba(30, 143, 255, .2);
+      border-radius: 4px;
+      color: var(--blue);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: all var(--tr-med);
+    }
+
+    .btn:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(30, 143, 255, .16), rgba(0, 212, 255, .12));
+      border-color: rgba(30, 143, 255, .35);
+      box-shadow: var(--glow-blue);
+      transform: translateY(-1px);
+    }
+
+    .btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: .5;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .03), transparent);
+    }
+
+    .btn:hover:not(:disabled)::before {
+      animation: shimmer 1.5s ease infinite;
+    }
+
+    @keyframes shimmer {
+      from {
+        left: -100%
+      }
+
+      to {
+        left: 100%
+      }
+    }
+
+    .btn.loading {
+      color: var(--yellow);
+      border-color: rgba(255, 204, 0, .2);
+      animation: btn-glow 1.5s ease-in-out infinite;
+    }
+
+    .btn.ok-state {
+      color: var(--cyan);
+      border-color: rgba(0, 212, 255, .4);
+      box-shadow: var(--glow-cyan);
+    }
+
+    .btn.err-state {
+      color: var(--red);
+      border-color: rgba(255, 51, 85, .3);
+    }
+
+    @keyframes btn-glow {
+
+      0%,
+      100% {
+        box-shadow: 0 0 4px rgba(255, 204, 0, .08)
+      }
+
+      50% {
+        box-shadow: 0 0 16px rgba(255, 204, 0, .12)
+      }
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid transparent;
+      border-top-color: var(--yellow);
+      border-right-color: var(--yellow);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      vertical-align: middle;
+      margin-right: 7px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg)
+      }
+    }
+
+    /* Logout */
+    #logout-btn {
+      display: none;
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      background: rgba(255, 51, 85, .06);
+      border: 1px solid rgba(255, 51, 85, .15);
+      border-radius: 4px;
+      color: var(--red);
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all var(--tr-med);
+      position: relative;
+      overflow: hidden;
+    }
+
+    #logout-btn:hover {
+      background: rgba(255, 51, 85, .12);
+      border-color: rgba(255, 51, 85, .3);
+      box-shadow: 0 0 10px rgba(255, 51, 85, .1);
+      transform: translateY(-1px);
+    }
+
+    #logout-btn.visible {
+      display: block;
+    }
+
+    /* Progress */
+    .prog-bar {
+      width: 100%;
+      height: 2px;
+      background: rgba(255, 255, 255, .03);
+      margin-top: 10px;
+      border-radius: 1px;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity var(--tr-fast);
+    }
+
+    .prog-bar.active {
+      opacity: 1;
+    }
+
+    .prog-fill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      border-radius: 1px;
+      transition: width .3s ease;
+    }
+
+    /* === TAB NAVIGATION === */
+    .tab-nav {
+      display: none;
+      margin-bottom: 18px;
+      border-bottom: 1px solid rgba(30, 143, 255, .08);
+    }
+
+    .tab-nav.visible {
+      display: flex;
+    }
+
+    .tab-nav-inner {
+      display: flex;
+      width: 100%;
+      gap: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .tab-nav-inner::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 10px 6px 8px;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--text-dim);
+      font-family: var(--font);
+      font-size: 8px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all var(--tr-med);
+      position: relative;
+      white-space: nowrap;
+    }
+
+    .tab-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.5;
+      transition: all var(--tr-med);
+    }
+
+    .tab-btn:hover {
+      color: var(--text2);
+    }
+
+    .tab-btn.active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan);
+      text-shadow: 0 0 10px rgba(0, 212, 255, .3);
+    }
+
+    .tab-btn.active svg {
+      filter: drop-shadow(0 0 4px rgba(0, 212, 255, .4));
+    }
+
+    /* Modules container */
+    .modules-container {
+      display: none;
+    }
+
+    .modules-container.visible {
+      display: block;
+    }
+
+    /* Module panels */
+    .module-panel {
+      display: none;
+      animation: panel-in .4s ease;
+    }
+
+    .module-panel.active {
+      display: block;
+    }
+
+    @keyframes panel-in {
+      from {
+        opacity: 0;
+        transform: translateY(8px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0)
+      }
+    }
+
+    .mod-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 212, 255, .15), transparent);
+      margin-bottom: 18px;
+    }
+
+    .mod-title {
+      font-size: 10px;
+      color: var(--cyan);
+      letter-spacing: 2px;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mod-title::before {
+      content: '▸';
+    }
+
+    /* Selectors */
+    .sel-wrap {
+      position: relative;
+      margin-bottom: 14px;
+    }
+
+    .sel-lbl {
+      font-size: 9px;
+      color: var(--text2);
+      letter-spacing: 1px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .sel-lbl .ic {
+      color: var(--cyan);
+    }
+
+    .custom-select {
+      width: 100%;
+      padding: 10px 32px 10px 12px;
+      background: rgba(0, 0, 0, .4);
+      border: 1px solid rgba(30, 143, 255, .1);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 11px;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: border-color var(--tr-fast);
+    }
+
+    .custom-select:focus {
+      border-color: rgba(0, 212, 255, .3);
+    }
+
+    .custom-select option {
+      background: #0a0e14;
+      color: var(--text);
+    }
+
+    .sel-arrow {
+      position: absolute;
+      right: 10px;
+      bottom: 11px;
+      color: var(--text-dim);
+      pointer-events: none;
+      font-size: 10px;
+    }
+
+    /* === VOICE TAGS & FILTERS === */
+    .voice-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .filter-chip {
+      padding: 4px 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(30, 143, 255, .12);
+      background: rgba(0, 0, 0, .3);
+      color: var(--text-dim);
+      font-family: var(--font);
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all var(--tr-fast);
+      white-space: nowrap;
+    }
+
+    .filter-chip:hover {
+      border-color: rgba(0, 212, 255, .3);
+      color: var(--text2);
+      background: rgba(0, 212, 255, .04);
+    }
+
+    .filter-chip.active {
+      border-color: rgba(0, 212, 255, .4);
+      color: var(--cyan);
+      background: rgba(0, 212, 255, .08);
+      box-shadow: 0 0 8px rgba(0, 212, 255, .1);
+    }
+
+    .filter-chip .chip-flag {
+      margin-right: 3px;
+    }
+
+    .filter-chip.all-chip {
+      border-color: rgba(0, 255, 170, .15);
+      color: var(--green);
+    }
+
+    .filter-chip.all-chip.active {
+      border-color: rgba(0, 255, 170, .4);
+      background: rgba(0, 255, 170, .08);
+      box-shadow: 0 0 8px rgba(0, 255, 170, .1);
+    }
+
+    /* Voice option tags inside select */
+    .voice-tag {
+      display: inline-block;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 8px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      margin-left: 4px;
+      vertical-align: middle;
+    }
+
+    .voice-tag.tag-accent {
+      background: rgba(168, 85, 247, .12);
+      color: var(--purple);
+      border: 1px solid rgba(168, 85, 247, .2);
+    }
+
+    .voice-tag.tag-gender {
+      background: rgba(0, 212, 255, .1);
+      color: var(--cyan);
+      border: 1px solid rgba(0, 212, 255, .15);
+    }
+
+    .voice-tag.tag-age {
+      background: rgba(255, 204, 0, .1);
+      color: var(--yellow);
+      border: 1px solid rgba(255, 204, 0, .15);
+    }
+
+    .voice-tag.tag-lang {
+      background: rgba(0, 255, 170, .1);
+      color: var(--green);
+      border: 1px solid rgba(0, 255, 170, .15);
+    }
+
+    /* Search input for voices */
+    .voice-search-wrap {
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    .voice-search {
+      width: 100%;
+      padding: 8px 12px 8px 28px;
+      background: rgba(0, 0, 0, .4);
+      border: 1px solid rgba(30, 143, 255, .1);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 10px;
+      letter-spacing: .5px;
+      outline: none;
+      transition: border-color var(--tr-fast);
+    }
+
+    .voice-search::placeholder {
+      color: var(--text-dim);
+    }
+
+    .voice-search:focus {
+      border-color: rgba(0, 212, 255, .3);
+    }
+
+    .voice-search-icon {
+      position: absolute;
+      left: 9px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      font-size: 11px;
+      pointer-events: none;
+    }
+
+    .voice-count {
+      font-size: 8px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      text-align: right;
+      margin-bottom: 4px;
+    }
+
+    /* Textarea */
+    .ta-wrap {
+      position: relative;
+      margin-bottom: 14px;
+    }
+
+    .ta-lbl {
+      font-size: 9px;
+      color: var(--text2);
+      letter-spacing: 1px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .ta-lbl .ic {
+      color: var(--cyan);
+    }
+
+    .custom-ta {
+      width: 100%;
+      height: 120px;
+      padding: 10px 12px;
+      background: rgba(0, 0, 0, .4);
+      border: 1px solid rgba(30, 143, 255, .1);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 11px;
+      line-height: 1.6;
+      outline: none;
+      resize: vertical;
+      min-height: 80px;
+      max-height: 250px;
+      transition: border-color var(--tr-fast);
+    }
+
+    .custom-ta::placeholder {
+      color: var(--text-dim);
+      font-size: 10px;
+    }
+
+    .custom-ta:focus {
+      border-color: rgba(0, 212, 255, .3);
+    }
+
+    .char-count {
+      position: absolute;
+      bottom: 8px;
+      right: 10px;
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: .5px;
+      transition: color var(--tr-fast);
+      pointer-events: none;
+    }
+
+    .char-count.mid {
+      color: var(--blue)
+    }
+
+    .char-count.high {
+      color: var(--yellow)
+    }
+
+    .char-count.max {
+      color: var(--red)
+    }
+
+    /* File upload drop zone */
+    .drop-zone {
+      width: 100%;
+      padding: 28px 16px;
+      border: 2px dashed rgba(0, 212, 255, .15);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, .25);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all var(--tr-med);
+      margin-bottom: 14px;
+      position: relative;
+    }
+
+    .drop-zone:hover,
+    .drop-zone.drag-over {
+      border-color: rgba(0, 212, 255, .4);
+      background: rgba(0, 212, 255, .03);
+      box-shadow: 0 0 20px rgba(0, 212, 255, .05);
+    }
+
+    .drop-zone svg {
+      width: 28px;
+      height: 28px;
+      stroke: var(--text-dim);
+      fill: none;
+      stroke-width: 1.5;
+      transition: stroke var(--tr-med);
+    }
+
+    .drop-zone:hover svg {
+      stroke: var(--cyan);
+    }
+
+    .drop-zone-text {
+      font-size: 10px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .drop-zone-sub {
+      font-size: 9px;
+      color: var(--text-dim);
+      opacity: .6;
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .drop-zone.has-file {
+      border-color: rgba(0, 255, 170, .2);
+      background: rgba(0, 255, 170, .02);
+    }
+
+    .drop-zone.has-file svg {
+      stroke: var(--green);
+    }
+
+    .file-info {
+      font-size: 9px;
+      color: var(--green);
+      letter-spacing: .5px;
+      margin-top: 2px;
+    }
+
+    /* === VOICE RECORDER === */
+    .or-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .or-divider::before,
+    .or-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(30, 143, 255, .12), transparent);
+    }
+
+    .recorder-box {
+      width: 100%;
+      padding: 16px;
+      border: 1px solid rgba(255, 51, 85, .08);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, .3);
+      margin-bottom: 14px;
+      transition: all var(--tr-med);
+    }
+
+    .recorder-box.recording {
+      border-color: rgba(255, 51, 85, .35);
+      background: rgba(255, 51, 85, .03);
+      box-shadow: 0 0 20px rgba(255, 51, 85, .06);
+    }
+
+    .recorder-box.has-recording {
+      border-color: rgba(0, 255, 170, .2);
+      background: rgba(0, 255, 170, .02);
+    }
+
+    .recorder-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .rec-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 51, 85, .3);
+      background: rgba(255, 51, 85, .08);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--tr-fast);
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .rec-btn:hover {
+      border-color: rgba(255, 51, 85, .6);
+      background: rgba(255, 51, 85, .15);
+      box-shadow: 0 0 15px rgba(255, 51, 85, .15);
+    }
+
+    .rec-btn .rec-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--red);
+      transition: all var(--tr-fast);
+    }
+
+    .rec-btn.recording .rec-icon {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      background: var(--red);
+      animation: rec-pulse 1s ease-in-out infinite;
+    }
+
+    .rec-btn.recording {
+      border-color: var(--red);
+      box-shadow: 0 0 15px rgba(255, 51, 85, .25);
+    }
+
+    @keyframes rec-pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+
+    .rec-btn::after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 51, 85, .3);
+      opacity: 0;
+    }
+
+    .rec-btn.recording::after {
+      animation: rec-ring 1.5s ease-out infinite;
+    }
+
+    @keyframes rec-ring {
+      from { width: 100%; height: 100%; opacity: .5; }
+      to { width: 180%; height: 180%; opacity: 0; }
+    }
+
+    .rec-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .rec-status {
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      transition: color var(--tr-fast);
+    }
+
+    .rec-status.recording {
+      color: var(--red);
+      animation: blink 1s ease-in-out infinite;
+    }
+
+    .rec-status.done {
+      color: var(--green);
+    }
+
+    .rec-timer {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text2);
+      letter-spacing: 2px;
+      font-variant-numeric: tabular-nums;
+      transition: color var(--tr-fast);
+    }
+
+    .rec-timer.recording {
+      color: var(--red);
+      text-shadow: 0 0 12px rgba(255, 51, 85, .3);
+    }
+
+    .rec-timer.done {
+      color: var(--green);
+      text-shadow: 0 0 12px rgba(0, 255, 170, .3);
+    }
+
+    /* Waveform visualizer */
+    .rec-waveform {
+      width: 100%;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      margin-bottom: 8px;
+    }
+
+    .rec-waveform .wave-bar {
+      width: 3px;
+      height: 4px;
+      background: rgba(30, 143, 255, .2);
+      border-radius: 2px;
+      transition: height .1s ease, background .2s ease;
+    }
+
+    .rec-waveform.recording .wave-bar {
+      background: var(--red);
+    }
+
+    .rec-waveform.done .wave-bar {
+      background: var(--green);
+    }
+
+    /* Recorder actions */
+    .rec-actions {
+      display: none;
+      gap: 8px;
+    }
+
+    .rec-actions.visible {
+      display: flex;
+    }
+
+    .rec-action-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(30, 143, 255, .12);
+      background: rgba(0, 0, 0, .3);
+      color: var(--text2);
+      font-family: var(--font);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all var(--tr-fast);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .rec-action-btn:hover {
+      border-color: rgba(0, 212, 255, .3);
+      color: var(--cyan);
+      background: rgba(0, 212, 255, .04);
+    }
+
+    .rec-action-btn.use-btn {
+      border-color: rgba(0, 255, 170, .2);
+      color: var(--green);
+    }
+
+    .rec-action-btn.use-btn:hover {
+      border-color: rgba(0, 255, 170, .4);
+      background: rgba(0, 255, 170, .06);
+      box-shadow: 0 0 10px rgba(0, 255, 170, .08);
+    }
+
+    .rec-action-btn.discard-btn {
+      border-color: rgba(255, 51, 85, .12);
+      color: var(--red);
+      opacity: .7;
+    }
+
+    .rec-action-btn.discard-btn:hover {
+      border-color: rgba(255, 51, 85, .3);
+      background: rgba(255, 51, 85, .04);
+      opacity: 1;
+    }
+
+    .rec-action-btn.preview-btn svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    /* Slider / Range */
+    .range-wrap {
+      margin-bottom: 14px;
+    }
+
+    .range-lbl {
+      font-size: 9px;
+      color: var(--text2);
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .range-val {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      appearance: none;
+      height: 4px;
+      background: rgba(30, 143, 255, .15);
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--cyan);
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0, 212, 255, .4);
+    }
+
+    /* Toggle switch */
+    .toggle-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .toggle-lbl {
+      font-size: 9px;
+      color: var(--text2);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .toggle {
+      width: 36px;
+      height: 18px;
+      background: rgba(30, 143, 255, .12);
+      border: 1px solid rgba(30, 143, 255, .15);
+      border-radius: 9px;
+      cursor: pointer;
+      position: relative;
+      transition: all var(--tr-fast);
+    }
+
+    .toggle.on {
+      background: rgba(0, 212, 255, .2);
+      border-color: rgba(0, 212, 255, .4);
+    }
+
+    .toggle::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--text-dim);
+      transition: all var(--tr-fast);
+    }
+
+    .toggle.on::after {
+      left: 20px;
+      background: var(--cyan);
+      box-shadow: 0 0 6px rgba(0, 212, 255, .5);
+    }
+
+    /* Audio player (reusable) */
+    .player-box {
+      background: rgba(0, 0, 0, .35);
+      border: 1px solid rgba(0, 212, 255, .1);
+      border-radius: 4px;
+      padding: 12px;
+      margin-top: 14px;
+      display: none;
+    }
+
+    .player-box.visible {
+      display: block;
+      animation: panel-in .4s ease;
+    }
+
+    .player-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .play-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(0, 212, 255, .1);
+      border: 1px solid rgba(0, 212, 255, .2);
+      color: var(--cyan);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      transition: all var(--tr-fast);
+      flex-shrink: 0;
+    }
+
+    .play-btn:hover {
+      background: rgba(0, 212, 255, .18);
+      box-shadow: 0 0 10px rgba(0, 212, 255, .2);
+    }
+
+    .player-progress {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .prog-track {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, .05);
+      border-radius: 2px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .prog-played {
+      height: 100%;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+      border-radius: 2px;
+      width: 0;
+      transition: width .1s linear;
+    }
+
+    .player-time {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: .5px;
+    }
+
+    .player-bot {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 8px;
+    }
+
+    .dl-btn {
+      padding: 7px 14px;
+      background: rgba(0, 212, 255, .08);
+      border: 1px solid rgba(0, 212, 255, .15);
+      border-radius: 3px;
+      color: var(--cyan);
+      font-family: var(--font);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      cursor: pointer;
+      transition: all var(--tr-fast);
+    }
+
+    .dl-btn:hover {
+      background: rgba(0, 212, 255, .15);
+      box-shadow: 0 0 10px rgba(0, 212, 255, .15);
+    }
+
+    /* Transcript output */
+    .transcript-box {
+      background: rgba(0, 0, 0, .4);
+      border: 1px solid rgba(0, 212, 255, .1);
+      border-radius: 4px;
+      padding: 14px;
+      margin-top: 14px;
+      display: none;
+      position: relative;
+    }
+
+    .transcript-box.visible {
+      display: block;
+      animation: panel-in .4s ease;
+    }
+
+    .transcript-text {
+      font-size: 11px;
+      line-height: 1.7;
+      color: var(--text);
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .transcript-text::-webkit-scrollbar {
+      width: 3px;
+    }
+
+    .transcript-text::-webkit-scrollbar-thumb {
+      background: rgba(0, 212, 255, .2);
+      border-radius: 2px;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 5px 10px;
+      background: rgba(0, 212, 255, .08);
+      border: 1px solid rgba(0, 212, 255, .12);
+      border-radius: 3px;
+      color: var(--cyan);
+      font-family: var(--font);
+      font-size: 9px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all var(--tr-fast);
+    }
+
+    .copy-btn:hover {
+      background: rgba(0, 212, 255, .15);
+    }
+
+    /* Logs */
+    .logs-section {
+      margin-top: 16px;
+    }
+
+    .logs-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .logs-title {
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .logs-title::before {
+      content: '▸';
+      color: var(--cyan);
+    }
+
+    .logs-clear {
+      font-size: 8px;
+      color: var(--cyan);
+      letter-spacing: 1px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: var(--font);
+      opacity: .6;
+      transition: opacity var(--tr-fast);
+    }
+
+    .logs-clear:hover {
+      opacity: 1;
+    }
+
+    #console-log {
+      background: rgba(0, 0, 0, .5);
+      border: 1px solid rgba(30, 143, 255, .08);
+      border-radius: 4px;
+      padding: 10px 12px;
+      height: 130px;
+      overflow-y: auto;
+      font-size: 10px;
+      line-height: 1.7;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(30, 143, 255, .15) transparent;
+    }
+
+    #console-log::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    #console-log::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    #console-log::-webkit-scrollbar-thumb {
+      background: rgba(30, 143, 255, .2);
+      border-radius: 2px;
+    }
+
+    .log-line {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      animation: log-fade-in .3s ease;
+    }
+
+    @keyframes log-fade-in {
+      from {
+        opacity: 0;
+        transform: translateX(-6px)
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0)
+      }
+    }
+
+    .log-line .log-time {
+      color: var(--text-dim);
+      margin-right: 6px;
+    }
+
+    .log-line .log-tag {
+      font-weight: 600;
+      letter-spacing: 1px;
+      margin-right: 6px;
+    }
+
+    .log-line.log-info .log-tag {
+      color: var(--blue)
+    }
+
+    .log-line.log-success .log-tag {
+      color: var(--green)
+    }
+
+    .log-line.log-error .log-tag {
+      color: var(--red)
+    }
+
+    .log-line.log-warn .log-tag {
+      color: var(--yellow)
+    }
+
+    .log-line .log-msg {
+      color: var(--text);
+    }
+
+    /* === BUY ACCOUNT BUTTON (floating CTA) === */
+    .buy-acc-btn {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 200;
+      padding: 12px 22px;
+      background: linear-gradient(135deg, rgba(0, 255, 170, .12), rgba(0, 212, 255, .08));
+      border: 1px solid rgba(0, 255, 170, .35);
+      border-radius: 8px;
+      color: var(--green);
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all .3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-shadow: 0 0 10px rgba(0, 255, 170, .4);
+      box-shadow: 0 4px 20px rgba(0, 255, 170, .12), 0 0 15px rgba(0, 255, 170, .06), inset 0 0 12px rgba(0, 255, 170, .03);
+      animation: buy-float 3s ease-in-out infinite;
+      backdrop-filter: blur(8px);
+    }
+
+    .buy-acc-btn .buy-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      width: 14px;
+      height: 14px;
+      background: var(--red);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 0 8px rgba(255, 51, 85, .6);
+      animation: badge-ping 2s ease-in-out infinite;
+    }
+
+    .buy-acc-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--green);
+      fill: none;
+      stroke-width: 1.8;
+      filter: drop-shadow(0 0 4px rgba(0, 255, 170, .5));
+    }
+
+    .buy-acc-btn:hover {
+      background: linear-gradient(135deg, rgba(0, 255, 170, .22), rgba(0, 212, 255, .15));
+      border-color: rgba(0, 255, 170, .6);
+      box-shadow: 0 6px 30px rgba(0, 255, 170, .2), 0 0 60px rgba(0, 255, 170, .08), inset 0 0 20px rgba(0, 255, 170, .06);
+      transform: translateY(-3px) scale(1.03);
+      text-shadow: 0 0 16px rgba(0, 255, 170, .6);
+    }
+
+    .buy-acc-btn:active {
+      transform: translateY(0) scale(.97);
+    }
+
+    .buy-acc-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 170, .08), transparent);
+    }
+
+    .buy-acc-btn:hover::before {
+      animation: shimmer 1.5s ease infinite;
+    }
+
+    @keyframes buy-float {
+      0%, 100% {
+        box-shadow: 0 4px 20px rgba(0, 255, 170, .12), 0 0 15px rgba(0, 255, 170, .06), inset 0 0 12px rgba(0, 255, 170, .03);
+        transform: translateY(0);
+      }
+      50% {
+        box-shadow: 0 8px 30px rgba(0, 255, 170, .18), 0 0 25px rgba(0, 255, 170, .08), inset 0 0 18px rgba(0, 255, 170, .04);
+        transform: translateY(-3px);
+      }
+    }
+
+    @keyframes badge-ping {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); }
+    }
+
+    /* === INLINE CTA BANNER (below auth form) === */
+    .auth-cta-banner {
+      margin-top: 18px;
+      padding: 16px;
+      background: linear-gradient(135deg, rgba(0, 255, 170, .04), rgba(0, 212, 255, .03));
+      border: 1px solid rgba(0, 255, 170, .12);
+      border-radius: 6px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .auth-cta-banner::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 170, .4), var(--cyan), rgba(0, 255, 170, .4), transparent);
+    }
+    .auth-cta-title {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .auth-cta-sub {
+      font-size: 9px;
+      color: var(--text2);
+      letter-spacing: .5px;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .auth-cta-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .auth-cta-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 5px;
+      font-family: var(--font);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all .3s ease;
+      border: 1px solid;
+    }
+    .auth-cta-btn.primary {
+      background: linear-gradient(135deg, rgba(0, 255, 170, .1), rgba(0, 212, 255, .08));
+      border-color: rgba(0, 255, 170, .3);
+      color: var(--green);
+      text-shadow: 0 0 8px rgba(0, 255, 170, .3);
+    }
+    .auth-cta-btn.primary:hover {
+      background: linear-gradient(135deg, rgba(0, 255, 170, .18), rgba(0, 212, 255, .12));
+      border-color: rgba(0, 255, 170, .5);
+      box-shadow: 0 0 20px rgba(0, 255, 170, .1);
+      transform: translateY(-1px);
+    }
+    .auth-cta-btn.secondary {
+      background: rgba(30, 143, 255, .06);
+      border-color: rgba(30, 143, 255, .15);
+      color: var(--cyan);
+    }
+    .auth-cta-btn.secondary:hover {
+      background: rgba(30, 143, 255, .12);
+      border-color: rgba(30, 143, 255, .3);
+      box-shadow: 0 0 15px rgba(30, 143, 255, .08);
+      transform: translateY(-1px);
+    }
+    .auth-cta-btn svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    /* === STORE LINK IN MODAL === */
+    .buy-store-link {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      margin-bottom: 14px;
+      background: linear-gradient(135deg, rgba(168, 85, 247, .08), rgba(0, 212, 255, .06));
+      border: 1px solid rgba(168, 85, 247, .2);
+      border-radius: 6px;
+      text-decoration: none;
+      color: var(--purple);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      transition: all .3s ease;
+    }
+    .buy-store-link:hover {
+      background: linear-gradient(135deg, rgba(168, 85, 247, .15), rgba(0, 212, 255, .1));
+      border-color: rgba(168, 85, 247, .4);
+      box-shadow: 0 0 20px rgba(168, 85, 247, .1);
+      transform: translateY(-1px);
+    }
+    .buy-store-link svg {
+      width: 14px;
+      height: 14px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+    .buy-store-badge {
+      padding: 2px 6px;
+      background: rgba(168, 85, 247, .15);
+      border-radius: 3px;
+      font-size: 7px;
+      letter-spacing: 1px;
+      color: var(--purple);
+    }
+
+    /* === BUY MODAL === */
+    .buy-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 4, 8, .85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      z-index: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity .4s ease, visibility .4s ease;
+    }
+
+    .buy-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .buy-modal {
+      width: 90%;
+      max-width: 380px;
+      background: rgba(2, 12, 25, .92);
+      border: 1px solid rgba(0, 255, 170, .15);
+      border-radius: 8px;
+      padding: 0;
+      overflow: hidden;
+      transform: scale(.9) translateY(10px);
+      transition: transform .4s cubic-bezier(.16, 1, .3, 1);
+      box-shadow: 0 0 40px rgba(0, 255, 170, .06), 0 0 80px rgba(0, 212, 255, .03), 0 20px 60px rgba(0, 0, 0, .5);
+    }
+
+    .buy-overlay.active .buy-modal {
+      transform: scale(1) translateY(0);
+    }
+
+    .buy-m-hdr {
+      padding: 16px 20px 14px;
+      background: rgba(0, 0, 0, .4);
+      border-bottom: 1px solid rgba(0, 255, 170, .08);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .buy-m-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: var(--green);
+      text-transform: uppercase;
+      text-shadow: 0 0 12px rgba(0, 255, 170, .3);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .buy-m-title svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--green);
+      fill: none;
+      stroke-width: 1.5;
+      filter: drop-shadow(0 0 5px rgba(0, 255, 170, .4));
+    }
+
+    .buy-m-close {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 16px;
+      cursor: pointer;
+      padding: 4px 6px;
+      transition: all .2s;
+      border-radius: 3px;
+      font-family: var(--font);
+    }
+
+    .buy-m-close:hover {
+      color: var(--red);
+      background: rgba(255, 51, 85, .1);
+    }
+
+    .buy-m-body {
+      padding: 20px;
+    }
+
+    .buy-m-desc {
+      font-size: 10px;
+      color: var(--text2);
+      letter-spacing: .5px;
+      line-height: 1.7;
+      margin-bottom: 18px;
+      text-align: center;
+    }
+
+    .buy-m-desc strong {
+      color: var(--cyan);
+      font-weight: 600;
+    }
+
+    /* Contact links */
+    .buy-contact {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .buy-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: rgba(0, 0, 0, .35);
+      border: 1px solid rgba(0, 255, 170, .1);
+      border-radius: 5px;
+      text-decoration: none;
+      color: var(--text);
+      transition: all .3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .buy-link:hover {
+      border-color: rgba(0, 255, 170, .3);
+      background: rgba(0, 255, 170, .04);
+      box-shadow: 0 0 15px rgba(0, 255, 170, .06);
+      transform: translateX(3px);
+    }
+
+    .buy-link::after {
+      content: '→';
+      position: absolute;
+      right: 14px;
+      color: var(--text-dim);
+      font-size: 12px;
+      transition: all .3s;
+    }
+
+    .buy-link:hover::after {
+      color: var(--green);
+      right: 10px;
+    }
+
+    .buy-link-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .buy-link-icon.tg {
+      background: rgba(0, 136, 204, .12);
+      border: 1px solid rgba(0, 136, 204, .2);
+    }
+
+    .buy-link-icon.wa {
+      background: rgba(37, 211, 102, .1);
+      border: 1px solid rgba(37, 211, 102, .2);
+    }
+
+    .buy-link-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+      stroke: none;
+    }
+
+    .buy-link-icon.tg svg {
+      color: #0088cc;
+    }
+
+    .buy-link-icon.wa svg {
+      color: #25d366;
+    }
+
+    .buy-link-info {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .buy-link-label {
+      font-size: 9px;
+      color: var(--text-dim);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .buy-link-val {
+      font-size: 11px;
+      color: var(--text);
+      font-weight: 500;
+      letter-spacing: .5px;
+    }
+
+    /* Divider */
+    .buy-m-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 255, 170, .12), transparent);
+      margin: 4px 0 14px;
+    }
+
+    /* Hours */
+    .buy-hours {
+      text-align: center;
+    }
+
+    .buy-hours-title {
+      font-size: 8px;
+      color: var(--text-dim);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .buy-hours-grid {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+    }
+
+    .buy-h-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .buy-h-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .buy-h-dot.open {
+      background: var(--green);
+      box-shadow: 0 0 8px rgba(0, 255, 170, .5);
+    }
+
+    .buy-h-dot.close {
+      background: var(--red);
+      box-shadow: 0 0 8px rgba(255, 51, 85, .5);
+    }
+
+    .buy-h-label {
+      font-size: 8px;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .buy-h-time {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+
+    .buy-h-item:first-child .buy-h-time {
+      color: var(--green);
+      text-shadow: 0 0 8px rgba(0, 255, 170, .3);
+    }
+
+    .buy-h-item:last-child .buy-h-time {
+      color: var(--red);
+      text-shadow: 0 0 8px rgba(255, 51, 85, .3);
+    }
+
+    /* Status indicator */
+    .buy-status {
+      text-align: center;
+      margin-top: 14px;
+      padding: 8px;
+      background: rgba(0, 0, 0, .3);
+      border-radius: 4px;
+      border: 1px solid rgba(0, 255, 170, .06);
+    }
+
+    .buy-status-dot {
+      display: inline-block;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .buy-status-dot.live {
+      background: var(--green);
+      box-shadow: 0 0 6px rgba(0, 255, 170, .5);
+      animation: blink 2s ease-in-out infinite;
+    }
+
+    .buy-status-dot.offline {
+      background: var(--red);
+      box-shadow: 0 0 6px rgba(255, 51, 85, .5);
+    }
+
+    .buy-status-text {
+      font-size: 9px;
+      letter-spacing: 1px;
+      vertical-align: middle;
+    }
+
+    /* === QUOTA DISPLAY === */
+    .quota-bar {
+      display: none;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      background: rgba(0, 0, 0, .3);
+      border-radius: 4px;
+      border: 1px solid rgba(30, 143, 255, .08);
+    }
+    .quota-bar.visible { display: block; animation: panel-in .4s ease; }
+    .quota-top {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 6px;
+    }
+    .quota-label { font-size: 9px; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; }
+    .quota-value { font-size: 10px; color: var(--cyan); font-weight: 600; letter-spacing: .5px; }
+    .quota-track {
+      width: 100%; height: 4px; background: rgba(255,255,255,.05);
+      border-radius: 2px; overflow: hidden;
+    }
+    .quota-fill {
+      height: 100%; background: linear-gradient(90deg, var(--blue), var(--cyan));
+      border-radius: 2px; transition: width .6s ease;
+    }
+    .quota-fill.warn { background: linear-gradient(90deg, var(--yellow), #ff8800); }
+    .quota-fill.danger { background: linear-gradient(90deg, var(--red), #ff6644); }
+    .quota-plan {
+      font-size: 8px; color: var(--text-dim); letter-spacing: 1px;
+      margin-top: 4px; text-transform: uppercase;
+    }
+
+    /* === VOICE SETTINGS === */
+    .voice-settings { margin-bottom: 14px; }
+    .voice-settings-toggle {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 9px; color: var(--text-dim); letter-spacing: 1px;
+      text-transform: uppercase; cursor: pointer; margin-bottom: 8px;
+      background: none; border: none; font-family: var(--font);
+      padding: 4px 0; transition: color var(--tr-fast);
+    }
+    .voice-settings-toggle:hover { color: var(--cyan); }
+    .voice-settings-toggle .arrow { transition: transform var(--tr-fast); font-size: 8px; }
+    .voice-settings-toggle.open .arrow { transform: rotate(90deg); }
+    .voice-settings-body {
+      display: none; padding: 10px 12px;
+      background: rgba(0,0,0,.25); border-radius: 4px;
+      border: 1px solid rgba(30,143,255,.06);
+    }
+    .voice-settings-body.visible { display: block; animation: panel-in .3s ease; }
+
+    /* === MODEL SELECTOR === */
+    .model-sel-wrap { margin-bottom: 14px; }
+
+    /* === OUTPUT FORMAT === */
+    .output-fmt-wrap { margin-bottom: 14px; }
+
+    /* === VOICE PREVIEW === */
+    .voice-preview-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; margin-top: 6px;
+      background: rgba(0, 212, 255, .06); border: 1px solid rgba(0, 212, 255, .12);
+      border-radius: 3px; color: var(--cyan); font-family: var(--font);
+      font-size: 9px; font-weight: 600; letter-spacing: 1px;
+      cursor: pointer; transition: all var(--tr-fast);
+    }
+    .voice-preview-btn:hover {
+      background: rgba(0, 212, 255, .12); border-color: rgba(0, 212, 255, .3);
+      box-shadow: 0 0 8px rgba(0, 212, 255, .1);
+    }
+    .voice-preview-btn:disabled { opacity: .4; cursor: not-allowed; }
+    .voice-preview-btn svg {
+      width: 10px; height: 10px; stroke: currentColor; fill: none; stroke-width: 2;
+    }
+
+    /* === SKIP BOOT === */
+    .boot-skip {
+      position: absolute; bottom: 30px;
+      padding: 8px 20px; background: rgba(0,212,255,.06);
+      border: 1px solid rgba(0,212,255,.15); border-radius: 4px;
+      color: var(--cyan); font-family: var(--font); font-size: 10px;
+      letter-spacing: 2px; cursor: pointer; text-transform: uppercase;
+      transition: all var(--tr-fast); opacity: 0;
+      animation: fade-in-delay .5s ease 1s forwards;
+    }
+    .boot-skip:hover {
+      background: rgba(0,212,255,.12); border-color: rgba(0,212,255,.3);
+    }
+    @keyframes fade-in-delay { to { opacity: 1; } }
+
+    /* Responsive */
+    @media(max-width:600px) {
+      .main {
+        padding: 12px;
+        margin: 20px auto;
+      }
+
+      .card-body {
+        padding: 18px 14px 16px;
+      }
+
+      .ascii-hdr {
+        font-size: 14px;
+      }
+
+      #console-log {
+        height: 90px;
+        font-size: 9px;
+      }
+
+      .tab-btn {
+        font-size: 7px;
+        padding: 8px 4px 6px;
+      }
+
+      .tab-btn svg {
+        width: 15px;
+        height: 15px;
+      }
+
+      .buy-acc-btn {
+        padding: 6px 10px;
+        font-size: 8px;
+        letter-spacing: 1px;
+        top: 12px;
+        right: 12px;
+      }
+
+      .buy-acc-btn span.buy-label {
+        display: none;
+      }
+
+      .buy-modal {
+        max-width: 340px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Boot overlay -->
+  <div class="boot-overlay" id="boot-overlay">
+    <div class="boot-text" id="boot-text"></div>
+    <div class="fp-section" id="fp-section">
+      <svg class="fp-svg" viewBox="0 0 50 50">
+        <path d="M25 5C12 5 5 15 5 25C5 35 12 45 25 45C38 45 45 35 45 25C45 15 38 5 25 5" />
+        <path d="M25 12C17 12 12 18 12 25C12 32 17 38 25 38C33 38 38 32 38 25C38 18 33 12 25 12" />
+        <path d="M25 19C21 19 19 22 19 25C19 28 21 31 25 31C29 31 31 28 31 25C31 22 29 19 25 19" />
+        <circle cx="25" cy="25" r="2" />
+      </svg>
+      <div class="fp-label">SCANNING BIOMETRICS</div>
+    </div>
+    <button class="boot-skip" id="boot-skip" type="button">▶ SKIP</button>
+  </div>
+  <!-- Secure overlay -->
+  <div class="secure-ov" id="secure-ov">
+    <div class="secure-lock">
+      <div class="s-ring"></div>
+      <div class="s-ring"></div>
+      <div class="s-ring"></div>
+      <svg viewBox="0 0 24 24">
+        <rect x="3" y="11" width="18" height="11" rx="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        <circle cx="12" cy="16" r="1.5" />
+      </svg>
+    </div>
+    <div class="s-text">SECURE CONNECTION ESTABLISHED</div>
+    <div class="s-sub">256-BIT ENCRYPTED TUNNEL ACTIVE</div>
+  </div>
+  <!-- BG -->
+  <canvas id="bg-canvas"></canvas>
+  <div class="scanlines"></div>
+  <!-- Watermark -->
+  <div class="wm-corner">ENCOREJEUNE</div>
+  <!-- Buy Account Button -->
+  <button class="buy-acc-btn" id="buy-acc-btn" type="button">
+    <span class="buy-badge">!</span>
+    <svg viewBox="0 0 24 24">
+      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+      <line x1="3" y1="6" x2="21" y2="6" />
+      <path d="M16 10a4 4 0 0 1-8 0" />
+    </svg>
+    <span class="buy-label">GET API KEY</span>
+  </button>
+  <!-- Buy Account Modal -->
+  <div class="buy-overlay" id="buy-overlay">
+    <div class="buy-modal">
+      <div class="buy-m-hdr">
+        <div class="buy-m-title">
+          <svg viewBox="0 0 24 24">
+            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" stroke="currentColor" fill="none"
+              stroke-width="1.5" />
+            <line x1="3" y1="6" x2="21" y2="6" stroke="currentColor" stroke-width="1.5" />
+            <path d="M16 10a4 4 0 0 1-8 0" stroke="currentColor" fill="none" stroke-width="1.5" />
+          </svg>
+          PURCHASE ACCOUNT
+        </div>
+        <button class="buy-m-close" id="buy-m-close" type="button">✕</button>
+      </div>
+      <div class="buy-m-body">
+        <div class="buy-m-desc">Get your <strong>ElevenLabs API KEY</strong> instantly<br>Fast response · Secure · Trusted
+        </div>
+        <!-- AccStorage Direct Link -->
+        <a href="https://accstorage.com/" target="_blank" class="buy-store-link">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          VISIT ACCSTORAGE.COM
+          <span class="buy-store-badge">STORE</span>
+        </a>
+        <div class="buy-contact">
+          <a href="https://t.me/encorejeuneteam" target="_blank" class="buy-link">
+            <div class="buy-link-icon tg"><svg viewBox="0 0 24 24">
+                <path
+                  d="M21.2 4.4L2.6 11c-.7.3-.7.7-.1.9l4.8 1.5 1.8 5.8c.2.4.4.5.7.3l2.6-2.1 5.1 3.8c.9.5 1.6.3 1.8-.9l3.3-15.6c.3-1.3-.5-1.8-1.4-1.3zM8.6 13.7l9.7-6.1c.5-.3.9-.1.6.2l-8.1 7.3-.3 3.3-1.9-4.7z" />
+              </svg></div>
+            <div class="buy-link-info"><span class="buy-link-label">Telegram</span><span
+                class="buy-link-val">@encorejeuneteam</span></div>
+          </a>
+          <a href="https://wa.me/6287732025258" target="_blank" class="buy-link">
+            <div class="buy-link-icon wa"><svg viewBox="0 0 24 24">
+                <path
+                  d="M17.47 14.38c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.14-.14.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.03-.52-.07-.15-.67-1.61-.92-2.2-.24-.58-.49-.5-.67-.51h-.58c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.49 0 1.47 1.07 2.89 1.22 3.09.15.2 2.1 3.2 5.08 4.49.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.09 1.76-.72 2.01-1.41.25-.7.25-1.29.17-1.41-.07-.12-.27-.2-.57-.34zM12.05 21.8c-1.84 0-3.65-.49-5.23-1.43l-.38-.22-3.9 1.02 1.04-3.8-.25-.39A9.77 9.77 0 0 1 2.1 12.05C2.1 6.56 6.56 2.1 12.05 2.1c2.66 0 5.16 1.04 7.04 2.92a9.88 9.88 0 0 1 2.91 7.03c0 5.49-4.46 9.95-9.95 9.95zm0-21.7C5.44.1.1 5.44.1 12.05c0 2.1.55 4.16 1.6 5.98L.1 24l6.14-1.61a11.86 11.86 0 0 0 5.81 1.52c6.61 0 11.95-5.35 11.95-11.96C24 5.34 18.66 0 12.05.1z" />
+              </svg></div>
+            <div class="buy-link-info"><span class="buy-link-label">WhatsApp</span><span
+                class="buy-link-val">087732025258</span></div>
+          </a>
+        </div>
+        <div class="buy-m-divider"></div>
+        <div class="buy-hours">
+          <div class="buy-hours-title">◆ Operating Hours</div>
+          <div class="buy-hours-grid">
+            <div class="buy-h-item">
+              <div class="buy-h-dot open"></div>
+              <div class="buy-h-label">Open</div>
+              <div class="buy-h-time">09:00 AM</div>
+            </div>
+            <div class="buy-h-item">
+              <div class="buy-h-dot close"></div>
+              <div class="buy-h-label">Close</div>
+              <div class="buy-h-time">01:00 AM</div>
+            </div>
+          </div>
+        </div>
+        <div class="buy-status" id="buy-status"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Main -->
+  <div class="main">
+    <div class="card" id="card">
+      <div class="card-hdr">
+        <div class="dots"><span class="d-r"></span><span class="d-y"></span><span class="d-g"></span></div>
+        <div class="card-title">ElevenLabs Terminal</div>
+        <div class="card-ver">v4.0.0</div>
+      </div>
+      <div class="card-body">
+        <div class="ascii-hdr" id="ascii-hdr">ELEVEN//LABS</div>
+        <div class="ascii-sub">MULTI-MODULE TERMINAL</div>
+        <!-- Status -->
+        <div class="status-bar">
+          <div class="s-dot" id="s-dot"></div>
+          <span class="s-label" id="s-label">DISCONNECTED</span>
+        </div>
+        <!-- API Quota -->
+        <div class="quota-bar" id="quota-bar">
+          <div class="quota-top">
+            <span class="quota-label">▸ CHARACTER QUOTA</span>
+            <span class="quota-value" id="quota-value">—</span>
+          </div>
+          <div class="quota-track"><div class="quota-fill" id="quota-fill"></div></div>
+          <div class="quota-plan" id="quota-plan"></div>
+        </div>
+        <!-- Auth section -->
+        <div id="auth-section">
+          <div class="inp-group">
+            <label class="inp-lbl" for="api-key"><span class="ic">›</span> API KEY</label>
+            <div class="inp-wrap">
+              <span class="inp-pre">></span>
+              <input type="password" id="api-key" class="inp-field" placeholder="sk_xxxxxxxxxxxxxxxxxxxxxxxx"
+                autocomplete="off" spellcheck="false" />
+              <button class="tog-vis" id="tog-vis" type="button" aria-label="Toggle visibility">
+                <svg id="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+                <svg id="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                  style="display:none">
+                  <path
+                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                  <line x1="1" y1="1" x2="23" y2="23" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <button class="btn" id="auth-btn" type="button"><span id="auth-btn-txt">▶ AUTHENTICATE</span></button>
+          <div class="prog-bar" id="auth-prog">
+            <div class="prog-fill" id="auth-prog-fill"></div>
+          </div>
+          <button id="logout-btn" type="button">⏻ DISCONNECT / LOGOUT</button>
+          <!-- Inline CTA Banner -->
+          <div class="auth-cta-banner" id="auth-cta">
+            <div class="auth-cta-title">⚡ Don't have an API Key?</div>
+            <div class="auth-cta-sub">Purchase your ElevenLabs API key instantly from our trusted store.<br>Secure checkout · Instant delivery · 24/7 support</div>
+            <div class="auth-cta-buttons">
+              <button class="auth-cta-btn primary" id="auth-cta-buy" type="button">
+                <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+                GET API KEY
+              </button>
+              <a href="https://accstorage.com/" target="_blank" class="auth-cta-btn secondary">
+                <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                ACCSTORAGE.COM
+              </a>
+            </div>
+          </div>
+        </div>
+        <!-- Tab Navigation -->
+        <div class="tab-nav" id="tab-nav">
+          <div class="tab-nav-inner">
+            <button class="tab-btn active" data-tab="tts" type="button">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+              TTS
+            </button>
+            <button class="tab-btn" data-tab="sfx" type="button">
+              <svg viewBox="0 0 24 24">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+              </svg>
+              SFX
+            </button>
+            <button class="tab-btn" data-tab="vc" type="button">
+              <svg viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+              VOICE
+            </button>
+            <button class="tab-btn" data-tab="iso" type="button">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              ISOLATOR
+            </button>
+            <button class="tab-btn" data-tab="stt" type="button">
+              <svg viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+              SCRIBE
+            </button>
+          </div>
+        </div>
+        <div class="modules-container" id="modules-container">
+          <!-- MODULE: TTS -->
+          <div class="module-panel active" id="panel-tts">
+            <div class="mod-divider"></div>
+            <div class="mod-title">TTS ENGINE — NEURAL SYNTHESIS</div>
+            <div class="sel-wrap">
+              <div class="sel-lbl"><span class="ic">▸</span> VOICE SELECTOR</div>
+              <div class="voice-filter-bar" id="tts-filter-bar"></div>
+              <div class="voice-search-wrap">
+                <span class="voice-search-icon">⌕</span>
+                <input type="text" class="voice-search" id="tts-voice-search" placeholder="Search voice name, accent, language..." disabled />
+              </div>
+              <div class="voice-count" id="tts-voice-count"></div>
+              <select id="voice-select" class="custom-select" disabled>
+                <option value="">— SELECT VOICE —</option>
+              </select>
+              <div class="sel-arrow">▾</div>
+              <button class="voice-preview-btn" id="tts-preview-btn" type="button" disabled><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> PREVIEW VOICE</button>
+            </div>
+            <!-- Model Selector -->
+            <div class="model-sel-wrap">
+              <div class="sel-lbl"><span class="ic">▸</span> MODEL</div>
+              <select id="tts-model" class="custom-select">
+                <option value="eleven_multilingual_v2">Multilingual v2 (Best Quality)</option>
+                <option value="eleven_turbo_v2_5">Turbo v2.5 (Fast)</option>
+                <option value="eleven_turbo_v2">Turbo v2</option>
+                <option value="eleven_multilingual_v1">Multilingual v1</option>
+                <option value="eleven_monolingual_v1">English v1</option>
+              </select>
+              <div class="sel-arrow">▾</div>
+            </div>
+            <!-- Voice Settings -->
+            <div class="voice-settings">
+              <button class="voice-settings-toggle" id="vs-toggle" type="button"><span class="arrow">▸</span> VOICE SETTINGS</button>
+              <div class="voice-settings-body" id="vs-body">
+                <div class="range-wrap">
+                  <div class="range-lbl"><span>STABILITY</span><span class="range-val" id="vs-stab-val">0.50</span></div>
+                  <input type="range" id="vs-stability" min="0" max="1" step="0.05" value="0.5" />
+                </div>
+                <div class="range-wrap">
+                  <div class="range-lbl"><span>SIMILARITY</span><span class="range-val" id="vs-sim-val">0.75</span></div>
+                  <input type="range" id="vs-similarity" min="0" max="1" step="0.05" value="0.75" />
+                </div>
+                <div class="range-wrap">
+                  <div class="range-lbl"><span>STYLE</span><span class="range-val" id="vs-style-val">0.00</span></div>
+                  <input type="range" id="vs-style" min="0" max="1" step="0.05" value="0" />
+                </div>
+                <div class="toggle-wrap">
+                  <div class="toggle" id="vs-boost-toggle"></div>
+                  <span class="toggle-lbl">SPEAKER BOOST</span>
+                </div>
+              </div>
+            </div>
+            <!-- Output Format -->
+            <div class="output-fmt-wrap">
+              <div class="sel-lbl"><span class="ic">▸</span> OUTPUT FORMAT</div>
+              <select id="tts-output-fmt" class="custom-select">
+                <option value="mp3_44100_128">MP3 44.1kHz 128kbps</option>
+                <option value="mp3_44100_192">MP3 44.1kHz 192kbps</option>
+                <option value="pcm_16000">PCM 16kHz</option>
+                <option value="pcm_22050">PCM 22.05kHz</option>
+                <option value="pcm_24000">PCM 24kHz</option>
+                <option value="pcm_44100">PCM 44.1kHz</option>
+                <option value="ulaw_8000">μ-law 8kHz</option>
+              </select>
+              <div class="sel-arrow">▾</div>
+            </div>
+            <div class="ta-wrap">
+              <div class="ta-lbl"><span class="ic">▸</span> TEXT INPUT</div>
+              <textarea id="tts-text" class="custom-ta" placeholder="> INPUT TEXT FOR SYNTHESIS..." maxlength="2500"
+                disabled></textarea>
+              <div class="char-count" id="char-count">0 / 2500</div>
+            </div>
+            <button class="btn" id="synth-btn" type="button" disabled><span id="synth-btn-txt">▶
+                SYNTHESIZE</span></button>
+            <div class="prog-bar" id="synth-prog">
+              <div class="prog-fill" id="synth-prog-fill"></div>
+            </div>
+            <div class="player-box" id="tts-player">
+              <div class="player-top">
+                <button class="play-btn" id="tts-play-btn" type="button">▶</button>
+                <div class="player-progress">
+                  <div class="prog-track" id="tts-prog-track">
+                    <div class="prog-played" id="tts-prog-played"></div>
+                  </div>
+                  <div class="player-time"><span id="tts-time-cur">00:00</span><span id="tts-time-dur">00:00</span>
+                  </div>
+                </div>
+              </div>
+              <div class="player-bot"><button class="dl-btn" id="tts-dl-btn" type="button">⬇ EXPORT .MP3</button></div>
+            </div>
+          </div>
+          <!-- MODULE: SFX -->
+          <div class="module-panel" id="panel-sfx">
+            <div class="mod-divider"></div>
+            <div class="mod-title">SOUND EFFECTS — AI GENERATOR</div>
+            <div class="ta-wrap">
+              <div class="ta-lbl"><span class="ic">▸</span> DESCRIBE THE SOUND</div>
+              <textarea id="sfx-text" class="custom-ta"
+                placeholder="> thunderstorm with heavy rain and distant thunder..." maxlength="1000"></textarea>
+              <div class="char-count" id="sfx-char-count">0 / 1000</div>
+            </div>
+            <div class="range-wrap">
+              <div class="range-lbl"><span>▸ DURATION</span><span class="range-val" id="sfx-dur-val">AUTO</span></div>
+              <input type="range" id="sfx-duration" min="0" max="22" step="0.5" value="0" />
+            </div>
+            <div class="toggle-wrap">
+              <div class="toggle" id="sfx-loop-toggle"></div>
+              <span class="toggle-lbl">SEAMLESS LOOP</span>
+            </div>
+            <button class="btn" id="sfx-btn" type="button"><span id="sfx-btn-txt">▶ GENERATE SFX</span></button>
+            <div class="prog-bar" id="sfx-prog">
+              <div class="prog-fill" id="sfx-prog-fill"></div>
+            </div>
+            <div class="player-box" id="sfx-player">
+              <div class="player-top">
+                <button class="play-btn" id="sfx-play-btn" type="button">▶</button>
+                <div class="player-progress">
+                  <div class="prog-track" id="sfx-prog-track">
+                    <div class="prog-played" id="sfx-prog-played"></div>
+                  </div>
+                  <div class="player-time"><span id="sfx-time-cur">00:00</span><span id="sfx-time-dur">00:00</span>
+                  </div>
+                </div>
+              </div>
+              <div class="player-bot"><button class="dl-btn" id="sfx-dl-btn" type="button">⬇ EXPORT .MP3</button></div>
+            </div>
+          </div>
+          <!-- MODULE: VOICE CHANGER -->
+          <div class="module-panel" id="panel-vc">
+            <div class="mod-divider"></div>
+            <div class="mod-title">VOICE CHANGER — SPEECH TO SPEECH</div>
+            <div class="drop-zone" id="vc-drop">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <div class="drop-zone-text">DROP AUDIO FILE OR CLICK</div>
+              <div class="drop-zone-sub">.mp3, .wav, .ogg, .m4a</div>
+              <input type="file" id="vc-file" accept="audio/*" />
+              <div class="file-info" id="vc-file-info"></div>
+            </div>
+            <div class="or-divider">OR RECORD</div>
+            <div class="recorder-box" id="vc-recorder">
+              <div class="recorder-top">
+                <button class="rec-btn" id="vc-rec-btn" type="button"><div class="rec-icon"></div></button>
+                <div class="rec-info">
+                  <div class="rec-status" id="vc-rec-status">READY TO RECORD</div>
+                  <div class="rec-timer" id="vc-rec-timer">00:00</div>
+                </div>
+              </div>
+              <div class="rec-waveform" id="vc-rec-waveform"></div>
+              <div class="rec-actions" id="vc-rec-actions">
+                <button class="rec-action-btn preview-btn" id="vc-rec-preview" type="button"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> PREVIEW</button>
+                <button class="rec-action-btn use-btn" id="vc-rec-use" type="button">✓ USE</button>
+                <button class="rec-action-btn discard-btn" id="vc-rec-discard" type="button">✕ DISCARD</button>
+              </div>
+            </div>
+            <div class="sel-wrap">
+              <div class="sel-lbl"><span class="ic">▸</span> TARGET VOICE</div>
+              <div class="voice-filter-bar" id="vc-filter-bar"></div>
+              <div class="voice-search-wrap">
+                <span class="voice-search-icon">⌕</span>
+                <input type="text" class="voice-search" id="vc-voice-search" placeholder="Search voice name, accent, language..." disabled />
+              </div>
+              <div class="voice-count" id="vc-voice-count"></div>
+              <select id="vc-voice-select" class="custom-select" disabled>
+                <option value="">— SELECT VOICE —</option>
+              </select>
+              <div class="sel-arrow">▾</div>
+            </div>
+            <!-- VC Model Selector -->
+            <div class="model-sel-wrap">
+              <div class="sel-lbl"><span class="ic">▸</span> VC MODEL</div>
+              <select id="vc-model" class="custom-select">
+                <option value="eleven_english_sts_v2">English STS v2</option>
+                <option value="eleven_multilingual_sts_v2">Multilingual STS v2</option>
+              </select>
+              <div class="sel-arrow">▾</div>
+            </div>
+            <button class="btn" id="vc-btn" type="button" disabled><span id="vc-btn-txt">▶ TRANSFORM
+                VOICE</span></button>
+            <div class="prog-bar" id="vc-prog">
+              <div class="prog-fill" id="vc-prog-fill"></div>
+            </div>
+            <div class="player-box" id="vc-player">
+              <div class="player-top">
+                <button class="play-btn" id="vc-play-btn" type="button">▶</button>
+                <div class="player-progress">
+                  <div class="prog-track" id="vc-prog-track">
+                    <div class="prog-played" id="vc-prog-played"></div>
+                  </div>
+                  <div class="player-time"><span id="vc-time-cur">00:00</span><span id="vc-time-dur">00:00</span></div>
+                </div>
+              </div>
+              <div class="player-bot"><button class="dl-btn" id="vc-dl-btn" type="button">⬇ EXPORT .MP3</button></div>
+            </div>
+          </div>
+          <!-- MODULE: AUDIO ISOLATOR -->
+          <div class="module-panel" id="panel-iso">
+            <div class="mod-divider"></div>
+            <div class="mod-title">AUDIO ISOLATOR — NOISE REMOVAL</div>
+            <div class="drop-zone" id="iso-drop">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <div class="drop-zone-text">DROP AUDIO FILE OR CLICK</div>
+              <div class="drop-zone-sub">.mp3, .wav, .ogg, .m4a</div>
+              <input type="file" id="iso-file" accept="audio/*" />
+              <div class="file-info" id="iso-file-info"></div>
+            </div>
+            <div class="or-divider">OR RECORD</div>
+            <div class="recorder-box" id="iso-recorder">
+              <div class="recorder-top">
+                <button class="rec-btn" id="iso-rec-btn" type="button"><div class="rec-icon"></div></button>
+                <div class="rec-info">
+                  <div class="rec-status" id="iso-rec-status">READY TO RECORD</div>
+                  <div class="rec-timer" id="iso-rec-timer">00:00</div>
+                </div>
+              </div>
+              <div class="rec-waveform" id="iso-rec-waveform"></div>
+              <div class="rec-actions" id="iso-rec-actions">
+                <button class="rec-action-btn preview-btn" id="iso-rec-preview" type="button"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> PREVIEW</button>
+                <button class="rec-action-btn use-btn" id="iso-rec-use" type="button">✓ USE</button>
+                <button class="rec-action-btn discard-btn" id="iso-rec-discard" type="button">✕ DISCARD</button>
+              </div>
+            </div>
+            <button class="btn" id="iso-btn" type="button" disabled><span id="iso-btn-txt">▶ ISOLATE
+                VOICE</span></button>
+            <div class="prog-bar" id="iso-prog">
+              <div class="prog-fill" id="iso-prog-fill"></div>
+            </div>
+            <div class="player-box" id="iso-player">
+              <div class="player-top">
+                <button class="play-btn" id="iso-play-btn" type="button">▶</button>
+                <div class="player-progress">
+                  <div class="prog-track" id="iso-prog-track">
+                    <div class="prog-played" id="iso-prog-played"></div>
+                  </div>
+                  <div class="player-time"><span id="iso-time-cur">00:00</span><span id="iso-time-dur">00:00</span>
+                  </div>
+                </div>
+              </div>
+              <div class="player-bot"><button class="dl-btn" id="iso-dl-btn" type="button">⬇ EXPORT .MP3</button></div>
+            </div>
+          </div>
+          <!-- MODULE: SCRIBE (STT) -->
+          <div class="module-panel" id="panel-stt">
+            <div class="mod-divider"></div>
+            <div class="mod-title">SCRIBE — SPEECH TO TEXT</div>
+            <div class="drop-zone" id="stt-drop">
+              <svg viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+              <div class="drop-zone-text">DROP AUDIO FILE OR CLICK</div>
+              <div class="drop-zone-sub">.mp3, .wav, .ogg, .m4a, .webm</div>
+              <input type="file" id="stt-file" accept="audio/*" />
+              <div class="file-info" id="stt-file-info"></div>
+            </div>
+            <div class="or-divider">OR RECORD</div>
+            <div class="recorder-box" id="stt-recorder">
+              <div class="recorder-top">
+                <button class="rec-btn" id="stt-rec-btn" type="button"><div class="rec-icon"></div></button>
+                <div class="rec-info">
+                  <div class="rec-status" id="stt-rec-status">READY TO RECORD</div>
+                  <div class="rec-timer" id="stt-rec-timer">00:00</div>
+                </div>
+              </div>
+              <div class="rec-waveform" id="stt-rec-waveform"></div>
+              <div class="rec-actions" id="stt-rec-actions">
+                <button class="rec-action-btn preview-btn" id="stt-rec-preview" type="button"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> PREVIEW</button>
+                <button class="rec-action-btn use-btn" id="stt-rec-use" type="button">✓ USE</button>
+                <button class="rec-action-btn discard-btn" id="stt-rec-discard" type="button">✕ DISCARD</button>
+              </div>
+            </div>
+            <button class="btn" id="stt-btn" type="button" disabled><span id="stt-btn-txt">▶ TRANSCRIBE</span></button>
+            <div class="prog-bar" id="stt-prog">
+              <div class="prog-fill" id="stt-prog-fill"></div>
+            </div>
+            <div class="transcript-box" id="stt-result">
+              <button class="copy-btn" id="stt-copy-btn" type="button">⧉ COPY</button>
+              <div class="transcript-text" id="stt-transcript"></div>
+            </div>
+          </div>
+        </div>
+        <!-- Logs -->
+        <div class="logs-section">
+          <div class="logs-hdr">
+            <span class="logs-title">SYSTEM LOGS</span>
+            <button class="logs-clear" id="logs-clear" type="button" title="Clear logs">✕ CLEAR</button>
+          </div>
+          <div id="console-log"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+    /* === BACKGROUND ANIMATION (throttled for performance) === */
+    (function () { const c = document.getElementById('bg-canvas'), ctx = c.getContext('2d'); let w, h, lastFrame = 0; const FPS = 15; const interval = 1000 / FPS; const chars = 'アイウエオカキクケコサシスセソ0123456789ABCDEF'; const cols = []; const sz = 16; function resize() { w = c.width = innerWidth; h = c.height = innerHeight; cols.length = 0; for (let i = 0; i < w / sz; i++)cols.push(Math.random() * h / sz | 0); } addEventListener('resize', resize); resize(); function draw(ts) { requestAnimationFrame(draw); if (ts - lastFrame < interval) return; lastFrame = ts; ctx.fillStyle = 'rgba(0,4,8,0.08)'; ctx.fillRect(0, 0, w, h); ctx.fillStyle = 'rgba(30,143,255,0.04)'; ctx.font = sz + 'px monospace'; for (let i = 0; i < cols.length; i++) { const ch = chars[Math.random() * chars.length | 0]; ctx.fillText(ch, i * sz, cols[i] * sz); if (cols[i] * sz > h && Math.random() > .975) cols[i] = 0; cols[i]++; } ctx.strokeStyle = 'rgba(30,143,255,0.015)'; ctx.lineWidth = .5; for (let x = 0; x < w; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke(); } for (let y = 0; y < h; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke(); } } requestAnimationFrame(draw); })();
+
+    /* === BOOT SEQUENCE (with skip button) === */
+    (function () {
+      const lines = [{ t: '> INITIALIZING SYSTEM...', c: 'blue', d: 0 }, { t: '  Loading kernel modules...........OK', c: 'dim', d: 180 }, { t: '  Network interface [eth0]........OK', c: 'dim', d: 320 }, { t: '  Firewall rules applied..........OK', c: 'dim', d: 460 }, { t: '> ESTABLISHING ENCRYPTED TUNNEL', c: 'cyan', d: 650 }, { t: '  TLS 1.3 handshake..............OK', c: 'dim', d: 820 }, { t: '  Certificate verified............OK', c: 'dim', d: 960 }, { t: '> LOADING ELEVENLABS API MODULE', c: 'blue', d: 1150 }, { t: '  Voice synthesis engine..........OK', c: 'dim', d: 1300 }, { t: '  Sound effects engine............OK', c: 'dim', d: 1400 }, { t: '  Audio isolation module..........OK', c: 'dim', d: 1500 }, { t: '> SYSTEM READY', c: 'green', d: 1650 }, { t: '  Awaiting authentication...', c: 'cyan', d: 1820 }];
+      const bt = document.getElementById('boot-text'), ov = document.getElementById('boot-overlay'), fp = document.getElementById('fp-section');
+      const bootTimers = [];
+      let bootDone = false;
+      function skipBoot() {
+        if (bootDone) return; bootDone = true;
+        bootTimers.forEach(t => clearTimeout(t));
+        ov.classList.add('hidden');
+      }
+      document.getElementById('boot-skip').onclick = skipBoot;
+      lines.forEach(l => { bootTimers.push(setTimeout(() => { if (bootDone) return; const e = document.createElement('div'); e.className = 'boot-line ' + l.c + ' visible'; e.textContent = l.t; bt.appendChild(e); }, l.d)); });
+      bootTimers.push(setTimeout(() => { if (!bootDone) fp.classList.add('visible'); }, 2100));
+      bootTimers.push(setTimeout(() => { if (!bootDone) { bootDone = true; ov.classList.add('hidden'); }}, 3800));
+      // Expose skipBoot for auto-reconnect
+      window._skipBoot = skipBoot;
+    })();
+
+    /* === GLOBALS === */
+    let API_KEY = '', voices = [], currentModuleAudio = {}, currentModuleBlobUrl = {};
+    let vcFile = null, isoFile = null, sttFile = null; // Declared early to avoid hoisting issues
+    let lastActionTime = 0; const ACTION_COOLDOWN = 2000; // Rate limiting
+    const $ = id => document.getElementById(id);
+    const consoleLog = $('console-log');
+
+    /* === LOGGING (XSS-safe) === */
+    function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+    function addLog(type, msg) { const line = document.createElement('div'); line.className = 'log-line log-' + type; const now = new Date(); const ts = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0'); line.innerHTML = '<span class="log-time">[' + ts + ']</span><span class="log-tag">[' + type.toUpperCase() + ']</span><span class="log-msg">' + escapeHtml(msg) + '</span>'; consoleLog.appendChild(line); consoleLog.scrollTop = consoleLog.scrollHeight; while (consoleLog.children.length > 100) consoleLog.removeChild(consoleLog.firstChild); }
+    $('logs-clear').onclick = () => { consoleLog.innerHTML = ''; addLog('info', 'Logs cleared'); };
+
+    /* === RATE LIMITER === */
+    function checkCooldown() { const now = Date.now(); if (now - lastActionTime < ACTION_COOLDOWN) { addLog('warn', 'Please wait before performing another action'); return false; } lastActionTime = now; return true; }
+
+    /* === STATUS === */
+    function setStatus(state, text) { const sDot = $('s-dot'), sLabel = $('s-label'), card = $('card'); sDot.className = 's-dot'; card.className = 'card'; if (state === 'off') { sLabel.style.color = ''; } else if (state === 'on') { sDot.classList.add('on'); card.classList.add('ok'); sLabel.style.color = 'var(--cyan)'; } else if (state === 'warn') { sDot.classList.add('warn'); sLabel.style.color = 'var(--yellow)'; } else if (state === 'bad') { sDot.classList.add('bad'); card.classList.add('err'); sLabel.style.color = 'var(--red)'; } else if (state === 'proc') { sDot.classList.add('proc'); sLabel.style.color = 'var(--blue)'; } sLabel.textContent = text || ''; }
+
+    /* === TOGGLE VISIBILITY === */
+    let vis = false;
+    $('tog-vis').onclick = () => { vis = !vis; $('api-key').type = vis ? 'text' : 'password'; $('eye-on').style.display = vis ? 'none' : 'block'; $('eye-off').style.display = vis ? 'block' : 'none'; };
+
+    /* === TAB NAVIGATION === */
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.module-panel');
+    tabBtns.forEach(btn => { btn.onclick = () => { tabBtns.forEach(b => b.classList.remove('active')); panels.forEach(p => p.classList.remove('active')); btn.classList.add('active'); $('panel-' + btn.dataset.tab).classList.add('active'); }; });
+
+    /* === HELPERS === */
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+    function fmtTime(s) { if (!s || isNaN(s)) return '00:00'; const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0'); }
+    function showSecure() { return new Promise(r => { const o = $('secure-ov'); o.classList.add('active'); setTimeout(() => { o.classList.remove('active'); r(); }, 800); }); }
+
+    /* === REUSABLE AUDIO PLAYER SETUP === */
+    function setupPlayer(prefix, audio, blobUrl) {
+      const player = $(prefix + '-player'), playBtn = $(prefix + '-play-btn'), progTrack = $(prefix + '-prog-track'), progPlayed = $(prefix + '-prog-played'), timeCur = $(prefix + '-time-cur'), timeDur = $(prefix + '-time-dur'), dlBtn = $(prefix + '-dl-btn');
+      // Cleanup previous
+      if (currentModuleAudio[prefix]) { currentModuleAudio[prefix].pause(); }
+      if (currentModuleBlobUrl[prefix]) { URL.revokeObjectURL(currentModuleBlobUrl[prefix]); }
+      currentModuleAudio[prefix] = audio; currentModuleBlobUrl[prefix] = blobUrl;
+      audio.addEventListener('loadedmetadata', () => { timeDur.textContent = fmtTime(audio.duration); });
+      audio.addEventListener('timeupdate', () => { timeCur.textContent = fmtTime(audio.currentTime); if (audio.duration) progPlayed.style.width = (audio.currentTime / audio.duration * 100) + '%'; });
+      audio.addEventListener('ended', () => { playBtn.textContent = '▶'; });
+      playBtn.onclick = () => { if (audio.paused) { audio.play(); playBtn.textContent = '❚❚'; } else { audio.pause(); playBtn.textContent = '▶'; } };
+      progTrack.onclick = e => { if (!audio.duration) return; const rect = progTrack.getBoundingClientRect(); audio.currentTime = (e.clientX - rect.left) / rect.width * audio.duration; };
+      dlBtn.onclick = () => { const ts = Date.now(); const mimeType = (audio.src && audio.src.includes('pcm')) ? 'wav' : 'mp3'; const a = document.createElement('a'); a.href = blobUrl; a.download = 'elevenlabs_' + prefix + '_' + ts + '.' + mimeType; document.body.appendChild(a); a.click(); a.remove(); addLog('success', 'File exported: elevenlabs_' + prefix + '_' + ts + '.' + mimeType); };
+      player.classList.add('visible');
+    }
+
+    /* === DROP ZONE SETUP (reusable) === */
+    function setupDropZone(dropId, fileId, infoId, onFile) {
+      const drop = $(dropId), input = $(fileId), info = $(infoId);
+      ['dragenter', 'dragover'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add('drag-over'); }));
+      ['dragleave', 'drop'].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove('drag-over'); }));
+      drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) { info.textContent = '✓ ' + f.name + ' (' + (f.size / 1024).toFixed(1) + 'KB)'; drop.classList.add('has-file'); onFile(f); } });
+      input.addEventListener('change', () => { const f = input.files[0]; if (f) { info.textContent = '✓ ' + f.name + ' (' + (f.size / 1024).toFixed(1) + 'KB)'; drop.classList.add('has-file'); onFile(f); } });
+    }
+
+    /* === VOICE RECORDER ENGINE === */
+    const recorderInstances = {};
+    function setupRecorder(prefix, onRecordingReady) {
+      const NUM_BARS = 40;
+      const recBox = $(prefix + '-recorder');
+      const recBtn = $(prefix + '-rec-btn');
+      const recStatus = $(prefix + '-rec-status');
+      const recTimer = $(prefix + '-rec-timer');
+      const recWaveform = $(prefix + '-rec-waveform');
+      const recActions = $(prefix + '-rec-actions');
+      const previewBtn = $(prefix + '-rec-preview');
+      const useBtn = $(prefix + '-rec-use');
+      const discardBtn = $(prefix + '-rec-discard');
+
+      // Create waveform bars
+      recWaveform.innerHTML = '';
+      for (let i = 0; i < NUM_BARS; i++) {
+        const bar = document.createElement('div');
+        bar.className = 'wave-bar';
+        recWaveform.appendChild(bar);
+      }
+      const bars = recWaveform.querySelectorAll('.wave-bar');
+
+      let mediaRecorder = null;
+      let audioChunks = [];
+      let recordedBlob = null;
+      let recordedBlobUrl = null;
+      let previewAudio = null;
+      let stream = null;
+      let audioCtx = null;
+      let analyser = null;
+      let animFrame = null;
+      let timerInterval = null;
+      let startTime = 0;
+
+      function fmtRecTime(ms) {
+        const totalSec = Math.floor(ms / 1000);
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+      }
+
+      function animateWaveform() {
+        if (!analyser) return;
+        const data = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(data);
+        const step = Math.floor(data.length / NUM_BARS);
+        for (let i = 0; i < NUM_BARS; i++) {
+          const val = data[i * step] || 0;
+          const h = Math.max(4, (val / 255) * 36);
+          bars[i].style.height = h + 'px';
+        }
+        animFrame = requestAnimationFrame(animateWaveform);
+      }
+
+      function resetBars() {
+        bars.forEach(b => b.style.height = '4px');
+      }
+
+      function resetUI() {
+        recBox.classList.remove('recording', 'has-recording');
+        recBtn.classList.remove('recording');
+        recStatus.className = 'rec-status';
+        recStatus.textContent = 'READY TO RECORD';
+        recTimer.className = 'rec-timer';
+        recTimer.textContent = '00:00';
+        recWaveform.classList.remove('recording', 'done');
+        recActions.classList.remove('visible');
+        resetBars();
+      }
+
+      async function startRecording() {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 } });
+          addLog('info', 'Microphone access granted');
+        } catch (err) {
+          addLog('error', 'Microphone access denied: ' + err.message);
+          return;
+        }
+        audioChunks = [];
+        recordedBlob = null;
+        if (recordedBlobUrl) { URL.revokeObjectURL(recordedBlobUrl); recordedBlobUrl = null; }
+        if (previewAudio) { previewAudio.pause(); previewAudio = null; }
+
+        // Setup analyser for waveform
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const source = audioCtx.createMediaStreamSource(stream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+
+        // Setup MediaRecorder
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm';
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+          recordedBlob = new Blob(audioChunks, { type: mimeType });
+          recordedBlobUrl = URL.createObjectURL(recordedBlob);
+          // Stop tracks
+          stream.getTracks().forEach(t => t.stop());
+          if (audioCtx) { audioCtx.close(); audioCtx = null; }
+          if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
+          // Update UI to done state
+          recBox.classList.remove('recording');
+          recBox.classList.add('has-recording');
+          recBtn.classList.remove('recording');
+          recStatus.className = 'rec-status done';
+          recStatus.textContent = 'RECORDING COMPLETE';
+          recTimer.classList.remove('recording');
+          recTimer.classList.add('done');
+          recWaveform.classList.remove('recording');
+          recWaveform.classList.add('done');
+          recActions.classList.add('visible');
+          addLog('success', 'Recording saved: ' + (recordedBlob.size / 1024).toFixed(1) + 'KB');
+        };
+
+        // Start
+        mediaRecorder.start(100);
+        startTime = Date.now();
+        recBox.classList.add('recording');
+        recBtn.classList.add('recording');
+        recStatus.className = 'rec-status recording';
+        recStatus.textContent = '● RECORDING...';
+        recTimer.className = 'rec-timer recording';
+        recWaveform.classList.add('recording');
+        recActions.classList.remove('visible');
+        animateWaveform();
+        timerInterval = setInterval(() => {
+          recTimer.textContent = fmtRecTime(Date.now() - startTime);
+        }, 200);
+        addLog('info', 'Recording started on [' + prefix.toUpperCase() + ']');
+      }
+
+      function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        clearInterval(timerInterval);
+        addLog('info', 'Recording stopped');
+      }
+
+      // Record button toggle
+      recBtn.onclick = () => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          stopRecording();
+        } else {
+          startRecording();
+        }
+      };
+
+      // Preview
+      previewBtn.onclick = () => {
+        if (!recordedBlobUrl) return;
+        if (previewAudio && !previewAudio.paused) {
+          previewAudio.pause();
+          previewAudio.currentTime = 0;
+          previewBtn.innerHTML = '<svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> PREVIEW';
+          return;
+        }
+        previewAudio = new Audio(recordedBlobUrl);
+        previewAudio.play();
+        previewBtn.innerHTML = '<svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> STOP';
+        previewAudio.onended = () => {
+          previewBtn.innerHTML = '<svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> PREVIEW';
+        };
+        addLog('info', 'Playing recording preview');
+      };
+
+      // Use recording
+      useBtn.onclick = () => {
+        if (!recordedBlob) return;
+        const file = new File([recordedBlob], 'recording_' + prefix + '_' + Date.now() + '.webm', { type: recordedBlob.type });
+        onRecordingReady(file);
+        addLog('success', 'Recording applied to [' + prefix.toUpperCase() + '] module');
+      };
+
+      // Discard
+      discardBtn.onclick = () => {
+        if (previewAudio) { previewAudio.pause(); previewAudio = null; }
+        if (recordedBlobUrl) { URL.revokeObjectURL(recordedBlobUrl); recordedBlobUrl = null; }
+        recordedBlob = null;
+        audioChunks = [];
+        resetUI();
+        addLog('info', 'Recording discarded');
+      };
+
+      recorderInstances[prefix] = { resetUI };
+    }
+
+    /* === AUTHENTICATE === */
+    let isAuthing = false;
+    async function doAuth() {
+      if (isAuthing) return;
+      const apiInput = $('api-key'), authBtn = $('auth-btn'), authBtnTxt = $('auth-btn-txt');
+      const authProg = $('auth-prog'), authProgFill = $('auth-prog-fill');
+      const key = apiInput.value.trim();
+      apiInput.classList.remove('err', 'ok'); authBtn.classList.remove('err-state', 'ok-state');
+      if (!key) { addLog('error', 'API key cannot be empty'); apiInput.classList.add('err'); setStatus('bad', 'ERROR'); return; }
+      if (key.length < 10) { addLog('error', 'API key too short'); apiInput.classList.add('err'); setStatus('bad', 'ERROR'); return; }
+      isAuthing = true; authBtn.disabled = true;
+      authBtn.classList.add('loading'); authBtnTxt.innerHTML = '<span class="spinner"></span>SCANNING...';
+      $('ascii-hdr').classList.add('glitch');
+      authProg.classList.add('active'); authProgFill.style.width = '20%';
+      setStatus('warn', 'SCANNING...'); addLog('info', 'Initiating connection to ElevenLabs API...');
+      await sleep(300); authProgFill.style.width = '40%'; addLog('info', 'Validating API credentials...');
+      try {
+        authProgFill.style.width = '60%';
+        const res = await fetch('https://api.elevenlabs.io/v1/user', { headers: { 'xi-api-key': key } });
+        authProgFill.style.width = '80%';
+        if (!res.ok) { const err = await res.json().catch(() => ({ detail: 'Unauthorized' })); throw new Error(err.detail?.message || err.detail || 'Invalid API key'); }
+        const user = await res.json(); authProgFill.style.width = '100%';
+        addLog('success', '✓ API KEY STATUS: VALID');
+        addLog('info', 'Authentication successful — Access granted');
+        API_KEY = key; $('ascii-hdr').classList.remove('glitch');
+        try { localStorage.setItem('_ej_ak', btoa(key)); } catch(e) {}
+        setStatus('on', 'CONNECTED'); apiInput.classList.add('ok'); apiInput.disabled = true;
+        authBtn.classList.remove('loading'); authBtn.classList.add('ok-state'); authBtnTxt.innerHTML = '✓ AUTHENTICATED'; authBtn.disabled = true;
+        $('logout-btn').classList.add('visible');
+        await sleep(200); await showSecure();
+        $('tab-nav').classList.add('visible');
+        $('modules-container').classList.add('visible');
+        setStatus('on', 'READY — ALL MODULES ONLINE');
+        await fetchVoices();
+        await fetchQuota();
+        addLog('success', 'All modules initialized. Select a tab to begin.');
+      } catch (e) {
+        $('ascii-hdr').classList.remove('glitch'); authProgFill.style.width = '100%'; authProgFill.style.background = 'var(--red)';
+        addLog('error', '✕ API KEY STATUS: INVALID'); addLog('error', 'Reason — ' + e.message); setStatus('bad', 'ERROR');
+        apiInput.classList.add('err'); authBtn.classList.remove('loading'); authBtn.classList.add('err-state'); authBtnTxt.innerHTML = '✕ DENIED';
+        setTimeout(() => { authBtn.classList.remove('err-state', 'ok-state', 'loading'); authBtnTxt.innerHTML = '▶ AUTHENTICATE'; setStatus('off', 'DISCONNECTED'); apiInput.classList.remove('err'); authProgFill.style.background = ''; authProgFill.style.width = '0'; authProg.classList.remove('active'); }, 2500);
+      }
+      isAuthing = false; if (!API_KEY) $('auth-btn').disabled = false;
+    }
+    $('auth-btn').onclick = doAuth;
+    $('api-key').onkeydown = e => { if (e.key === 'Enter') doAuth(); };
+    $('api-key').oninput = () => $('api-key').classList.remove('err', 'ok');
+
+    /* === LOCALE → COUNTRY FLAG & NAME MAPPING (primary source of truth) === */
+    const LOCALE_COUNTRY_MAP = {
+      // English
+      'en-US': { flag: '🇺🇸', country: 'United States' },
+      'en-GB': { flag: '🇬🇧', country: 'United Kingdom' },
+      'en-AU': { flag: '🇦🇺', country: 'Australia' },
+      'en-IN': { flag: '🇮🇳', country: 'India' },
+      'en-IE': { flag: '🇮🇪', country: 'Ireland' },
+      'en-NZ': { flag: '🇳🇿', country: 'New Zealand' },
+      'en-ZA': { flag: '🇿🇦', country: 'South Africa' },
+      'en-CA': { flag: '🇨🇦', country: 'Canada' },
+      'en-SG': { flag: '🇸🇬', country: 'Singapore' },
+      'en-PH': { flag: '🇵🇭', country: 'Philippines' },
+      'en-NG': { flag: '🇳🇬', country: 'Nigeria' },
+      'en-KE': { flag: '🇰🇪', country: 'Kenya' },
+      'en-SC': { flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', country: 'Scotland' },
+      // French
+      'fr-FR': { flag: '🇫🇷', country: 'France' },
+      'fr-CA': { flag: '🇨🇦', country: 'Canada' },
+      'fr-BE': { flag: '🇧🇪', country: 'Belgium' },
+      'fr-CH': { flag: '🇨🇭', country: 'Switzerland' },
+      // German
+      'de-DE': { flag: '🇩🇪', country: 'Germany' },
+      'de-AT': { flag: '🇦🇹', country: 'Austria' },
+      'de-CH': { flag: '🇨🇭', country: 'Switzerland' },
+      // Spanish
+      'es-ES': { flag: '🇪🇸', country: 'Spain' },
+      'es-MX': { flag: '🇲🇽', country: 'Mexico' },
+      'es-AR': { flag: '🇦🇷', country: 'Argentina' },
+      'es-CO': { flag: '🇨🇴', country: 'Colombia' },
+      'es-CL': { flag: '🇨🇱', country: 'Chile' },
+      'es-PE': { flag: '🇵🇪', country: 'Peru' },
+      'es-419': { flag: '🌎', country: 'Latin America' },
+      // Portuguese
+      'pt-BR': { flag: '🇧🇷', country: 'Brazil' },
+      'pt-PT': { flag: '🇵🇹', country: 'Portugal' },
+      // Italian
+      'it-IT': { flag: '🇮🇹', country: 'Italy' },
+      // Chinese
+      'cmn-CN': { flag: '🇨🇳', country: 'China' },
+      'zh-CN': { flag: '🇨🇳', country: 'China' },
+      'zh-TW': { flag: '🇹🇼', country: 'Taiwan' },
+      'yue-HK': { flag: '🇭🇰', country: 'Hong Kong' },
+      'zh-HK': { flag: '🇭🇰', country: 'Hong Kong' },
+      // Japanese
+      'ja-JP': { flag: '🇯🇵', country: 'Japan' },
+      // Korean
+      'ko-KR': { flag: '🇰🇷', country: 'South Korea' },
+      // Arabic
+      'ar-SA': { flag: '🇸🇦', country: 'Saudi Arabia' },
+      'ar-EG': { flag: '🇪🇬', country: 'Egypt' },
+      'ar-AE': { flag: '🇦🇪', country: 'UAE' },
+      // Hindi
+      'hi-IN': { flag: '🇮🇳', country: 'India' },
+      // Russian
+      'ru-RU': { flag: '🇷🇺', country: 'Russia' },
+      // Turkish
+      'tr-TR': { flag: '🇹🇷', country: 'Turkey' },
+      // Dutch
+      'nl-NL': { flag: '🇳🇱', country: 'Netherlands' },
+      'nl-BE': { flag: '🇧🇪', country: 'Belgium' },
+      // Polish
+      'pl-PL': { flag: '🇵🇱', country: 'Poland' },
+      // Swedish
+      'sv-SE': { flag: '🇸🇪', country: 'Sweden' },
+      // Norwegian
+      'nb-NO': { flag: '🇳🇴', country: 'Norway' },
+      'no-NO': { flag: '🇳🇴', country: 'Norway' },
+      // Danish
+      'da-DK': { flag: '🇩🇰', country: 'Denmark' },
+      // Finnish
+      'fi-FI': { flag: '🇫🇮', country: 'Finland' },
+      // Czech
+      'cs-CZ': { flag: '🇨🇿', country: 'Czech Republic' },
+      // Slovak
+      'sk-SK': { flag: '🇸🇰', country: 'Slovakia' },
+      // Romanian
+      'ro-RO': { flag: '🇷🇴', country: 'Romania' },
+      // Hungarian
+      'hu-HU': { flag: '🇭🇺', country: 'Hungary' },
+      // Greek
+      'el-GR': { flag: '🇬🇷', country: 'Greece' },
+      // Bulgarian
+      'bg-BG': { flag: '🇧🇬', country: 'Bulgaria' },
+      // Croatian
+      'hr-HR': { flag: '🇭🇷', country: 'Croatia' },
+      // Serbian
+      'sr-RS': { flag: '🇷🇸', country: 'Serbia' },
+      // Ukrainian
+      'uk-UA': { flag: '🇺🇦', country: 'Ukraine' },
+      // Thai
+      'th-TH': { flag: '🇹🇭', country: 'Thailand' },
+      // Vietnamese
+      'vi-VN': { flag: '🇻🇳', country: 'Vietnam' },
+      // Indonesian
+      'id-ID': { flag: '🇮🇩', country: 'Indonesia' },
+      // Malay
+      'ms-MY': { flag: '🇲🇾', country: 'Malaysia' },
+      // Filipino
+      'fil-PH': { flag: '🇵🇭', country: 'Philippines' },
+      'tl-PH': { flag: '🇵🇭', country: 'Philippines' },
+      // Hebrew
+      'he-IL': { flag: '🇮🇱', country: 'Israel' },
+      // Persian
+      'fa-IR': { flag: '🇮🇷', country: 'Iran' },
+      // Bengali
+      'bn-IN': { flag: '🇮🇳', country: 'India' },
+      'bn-BD': { flag: '🇧🇩', country: 'Bangladesh' },
+      // Tamil
+      'ta-IN': { flag: '🇮🇳', country: 'India' },
+      // Telugu
+      'te-IN': { flag: '🇮🇳', country: 'India' },
+      // Urdu
+      'ur-PK': { flag: '🇵🇰', country: 'Pakistan' },
+      // Swahili
+      'sw-KE': { flag: '🇰🇪', country: 'Kenya' },
+      // Afrikaans
+      'af-ZA': { flag: '🇿🇦', country: 'South Africa' },
+    };
+
+    /* === ACCENT → COUNTRY MAPPING (fallback) === */
+    const ACCENT_COUNTRY_MAP = {
+      'american': { flag: '🇺🇸', country: 'United States' },
+      'us': { flag: '🇺🇸', country: 'United States' },
+      'usa': { flag: '🇺🇸', country: 'United States' },
+      'british': { flag: '🇬🇧', country: 'United Kingdom' },
+      'uk': { flag: '🇬🇧', country: 'United Kingdom' },
+      'english': { flag: '🇬🇧', country: 'United Kingdom' },
+      'australian': { flag: '🇦🇺', country: 'Australia' },
+      'aussie': { flag: '🇦🇺', country: 'Australia' },
+      'irish': { flag: '🇮🇪', country: 'Ireland' },
+      'ireland': { flag: '🇮🇪', country: 'Ireland' },
+      'scottish': { flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', country: 'Scotland' },
+      'scotland': { flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', country: 'Scotland' },
+      'indian': { flag: '🇮🇳', country: 'India' },
+      'india': { flag: '🇮🇳', country: 'India' },
+      'hindi': { flag: '🇮🇳', country: 'India' },
+      'german': { flag: '🇩🇪', country: 'Germany' },
+      'germany': { flag: '🇩🇪', country: 'Germany' },
+      'deutsch': { flag: '🇩🇪', country: 'Germany' },
+      'french': { flag: '🇫🇷', country: 'France' },
+      'france': { flag: '🇫🇷', country: 'France' },
+      'français': { flag: '🇫🇷', country: 'France' },
+      'spanish': { flag: '🇪🇸', country: 'Spain' },
+      'spain': { flag: '🇪🇸', country: 'Spain' },
+      'español': { flag: '🇪🇸', country: 'Spain' },
+      'castilian': { flag: '🇪🇸', country: 'Spain' },
+      'mexican': { flag: '🇲🇽', country: 'Mexico' },
+      'mexico': { flag: '🇲🇽', country: 'Mexico' },
+      'italian': { flag: '🇮🇹', country: 'Italy' },
+      'italy': { flag: '🇮🇹', country: 'Italy' },
+      'italiano': { flag: '🇮🇹', country: 'Italy' },
+      'portuguese': { flag: '🇵🇹', country: 'Portugal' },
+      'portugal': { flag: '🇵🇹', country: 'Portugal' },
+      'português': { flag: '🇵🇹', country: 'Portugal' },
+      'brazilian': { flag: '🇧🇷', country: 'Brazil' },
+      'brazil': { flag: '🇧🇷', country: 'Brazil' },
+      'japanese': { flag: '🇯🇵', country: 'Japan' },
+      'japan': { flag: '🇯🇵', country: 'Japan' },
+      '日本語': { flag: '🇯🇵', country: 'Japan' },
+      'korean': { flag: '🇰🇷', country: 'South Korea' },
+      'korea': { flag: '🇰🇷', country: 'South Korea' },
+      '한국어': { flag: '🇰🇷', country: 'South Korea' },
+      'chinese': { flag: '🇨🇳', country: 'China' },
+      'china': { flag: '🇨🇳', country: 'China' },
+      'mandarin': { flag: '🇨🇳', country: 'China' },
+      '中文': { flag: '🇨🇳', country: 'China' },
+      'cantonese': { flag: '🇭🇰', country: 'Hong Kong' },
+      'russian': { flag: '🇷🇺', country: 'Russia' },
+      'russia': { flag: '🇷🇺', country: 'Russia' },
+      'русский': { flag: '🇷🇺', country: 'Russia' },
+      'arabic': { flag: '🇸🇦', country: 'Saudi Arabia' },
+      'saudi': { flag: '🇸🇦', country: 'Saudi Arabia' },
+      'arab': { flag: '🇸🇦', country: 'Saudi Arabia' },
+      'عربي': { flag: '🇸🇦', country: 'Saudi Arabia' },
+      'turkish': { flag: '🇹🇷', country: 'Turkey' },
+      'turkey': { flag: '🇹🇷', country: 'Turkey' },
+      'türkçe': { flag: '🇹🇷', country: 'Turkey' },
+      'dutch': { flag: '🇳🇱', country: 'Netherlands' },
+      'netherlands': { flag: '🇳🇱', country: 'Netherlands' },
+      'holland': { flag: '🇳🇱', country: 'Netherlands' },
+      'nederlands': { flag: '🇳🇱', country: 'Netherlands' },
+      'polish': { flag: '🇵🇱', country: 'Poland' },
+      'poland': { flag: '🇵🇱', country: 'Poland' },
+      'polski': { flag: '🇵🇱', country: 'Poland' },
+      'swedish': { flag: '🇸🇪', country: 'Sweden' },
+      'sweden': { flag: '🇸🇪', country: 'Sweden' },
+      'svenska': { flag: '🇸🇪', country: 'Sweden' },
+      'norwegian': { flag: '🇳🇴', country: 'Norway' },
+      'norway': { flag: '🇳🇴', country: 'Norway' },
+      'norsk': { flag: '🇳🇴', country: 'Norway' },
+      'danish': { flag: '🇩🇰', country: 'Denmark' },
+      'denmark': { flag: '🇩🇰', country: 'Denmark' },
+      'dansk': { flag: '🇩🇰', country: 'Denmark' },
+      'finnish': { flag: '🇫🇮', country: 'Finland' },
+      'finland': { flag: '🇫🇮', country: 'Finland' },
+      'suomi': { flag: '🇫🇮', country: 'Finland' },
+      'greek': { flag: '🇬🇷', country: 'Greece' },
+      'greece': { flag: '🇬🇷', country: 'Greece' },
+      'ελληνικά': { flag: '🇬🇷', country: 'Greece' },
+      'czech': { flag: '🇨🇿', country: 'Czech Republic' },
+      'čeština': { flag: '🇨🇿', country: 'Czech Republic' },
+      'slovak': { flag: '🇸🇰', country: 'Slovakia' },
+      'romanian': { flag: '🇷🇴', country: 'Romania' },
+      'romania': { flag: '🇷🇴', country: 'Romania' },
+      'română': { flag: '🇷🇴', country: 'Romania' },
+      'hungarian': { flag: '🇭🇺', country: 'Hungary' },
+      'hungary': { flag: '🇭🇺', country: 'Hungary' },
+      'magyar': { flag: '🇭🇺', country: 'Hungary' },
+      'thai': { flag: '🇹🇭', country: 'Thailand' },
+      'thailand': { flag: '🇹🇭', country: 'Thailand' },
+      'ไทย': { flag: '🇹🇭', country: 'Thailand' },
+      'vietnamese': { flag: '🇻🇳', country: 'Vietnam' },
+      'vietnam': { flag: '🇻🇳', country: 'Vietnam' },
+      'tiếng việt': { flag: '🇻🇳', country: 'Vietnam' },
+      'indonesian': { flag: '🇮🇩', country: 'Indonesia' },
+      'indonesia': { flag: '🇮🇩', country: 'Indonesia' },
+      'bahasa': { flag: '🇮🇩', country: 'Indonesia' },
+      'malay': { flag: '🇲🇾', country: 'Malaysia' },
+      'malaysia': { flag: '🇲🇾', country: 'Malaysia' },
+      'filipino': { flag: '🇵🇭', country: 'Philippines' },
+      'philippines': { flag: '🇵🇭', country: 'Philippines' },
+      'tagalog': { flag: '🇵🇭', country: 'Philippines' },
+      'south african': { flag: '🇿🇦', country: 'South Africa' },
+      'afrikaans': { flag: '🇿🇦', country: 'South Africa' },
+      'nigerian': { flag: '🇳🇬', country: 'Nigeria' },
+      'nigeria': { flag: '🇳🇬', country: 'Nigeria' },
+      'kenyan': { flag: '🇰🇪', country: 'Kenya' },
+      'kenya': { flag: '🇰🇪', country: 'Kenya' },
+      'colombian': { flag: '🇨🇴', country: 'Colombia' },
+      'colombia': { flag: '🇨🇴', country: 'Colombia' },
+      'argentinian': { flag: '🇦🇷', country: 'Argentina' },
+      'argentina': { flag: '🇦🇷', country: 'Argentina' },
+      'chilean': { flag: '🇨🇱', country: 'Chile' },
+      'chile': { flag: '🇨🇱', country: 'Chile' },
+      'peruvian': { flag: '🇵🇪', country: 'Peru' },
+      'peru': { flag: '🇵🇪', country: 'Peru' },
+      'canadian': { flag: '🇨🇦', country: 'Canada' },
+      'canada': { flag: '🇨🇦', country: 'Canada' },
+      'new zealand': { flag: '🇳🇿', country: 'New Zealand' },
+      'kiwi': { flag: '🇳🇿', country: 'New Zealand' },
+      'egyptian': { flag: '🇪🇬', country: 'Egypt' },
+      'egypt': { flag: '🇪🇬', country: 'Egypt' },
+      'ukrainian': { flag: '🇺🇦', country: 'Ukraine' },
+      'ukraine': { flag: '🇺🇦', country: 'Ukraine' },
+      'hebrew': { flag: '🇮🇱', country: 'Israel' },
+      'israeli': { flag: '🇮🇱', country: 'Israel' },
+      'israel': { flag: '🇮🇱', country: 'Israel' },
+      'persian': { flag: '🇮🇷', country: 'Iran' },
+      'iranian': { flag: '🇮🇷', country: 'Iran' },
+      'farsi': { flag: '🇮🇷', country: 'Iran' },
+      'bengali': { flag: '🇧🇩', country: 'Bangladesh' },
+      'bangladeshi': { flag: '🇧🇩', country: 'Bangladesh' },
+      'tamil': { flag: '🇮🇳', country: 'India' },
+      'telugu': { flag: '🇮🇳', country: 'India' },
+      'urdu': { flag: '🇵🇰', country: 'Pakistan' },
+      'pakistani': { flag: '🇵🇰', country: 'Pakistan' },
+      'latin american': { flag: '🌎', country: 'Latin America' },
+      'latino': { flag: '🌎', country: 'Latin America' },
+      'african': { flag: '🌍', country: 'Africa' },
+      'asian': { flag: '🌏', country: 'Asia' },
+      'middle eastern': { flag: '🌍', country: 'Middle East' },
+      'european': { flag: '🌍', country: 'Europe' },
+      'singaporean': { flag: '🇸🇬', country: 'Singapore' },
+      'croatian': { flag: '🇭🇷', country: 'Croatia' },
+      'serbian': { flag: '🇷🇸', country: 'Serbia' },
+      'bulgarian': { flag: '🇧🇬', country: 'Bulgaria' },
+    };
+
+    /* === LANGUAGE CODE → COUNTRY (last-resort fallback) === */
+    const LANG_CODE_COUNTRY_MAP = {
+      'en': { flag: '🇺🇸', country: 'United States' },
+      'de': { flag: '🇩🇪', country: 'Germany' },
+      'fr': { flag: '🇫🇷', country: 'France' },
+      'es': { flag: '🇪🇸', country: 'Spain' },
+      'it': { flag: '🇮🇹', country: 'Italy' },
+      'pt': { flag: '🇵🇹', country: 'Portugal' },
+      'ja': { flag: '🇯🇵', country: 'Japan' },
+      'ko': { flag: '🇰🇷', country: 'South Korea' },
+      'zh': { flag: '🇨🇳', country: 'China' },
+      'ru': { flag: '🇷🇺', country: 'Russia' },
+      'ar': { flag: '🇸🇦', country: 'Saudi Arabia' },
+      'tr': { flag: '🇹🇷', country: 'Turkey' },
+      'nl': { flag: '🇳🇱', country: 'Netherlands' },
+      'pl': { flag: '🇵🇱', country: 'Poland' },
+      'sv': { flag: '🇸🇪', country: 'Sweden' },
+      'no': { flag: '🇳🇴', country: 'Norway' },
+      'da': { flag: '🇩🇰', country: 'Denmark' },
+      'fi': { flag: '🇫🇮', country: 'Finland' },
+      'el': { flag: '🇬🇷', country: 'Greece' },
+      'cs': { flag: '🇨🇿', country: 'Czech Republic' },
+      'sk': { flag: '🇸🇰', country: 'Slovakia' },
+      'ro': { flag: '🇷🇴', country: 'Romania' },
+      'hu': { flag: '🇭🇺', country: 'Hungary' },
+      'th': { flag: '🇹🇭', country: 'Thailand' },
+      'vi': { flag: '🇻🇳', country: 'Vietnam' },
+      'id': { flag: '🇮🇩', country: 'Indonesia' },
+      'ms': { flag: '🇲🇾', country: 'Malaysia' },
+      'tl': { flag: '🇵🇭', country: 'Philippines' },
+      'fil': { flag: '🇵🇭', country: 'Philippines' },
+      'hi': { flag: '🇮🇳', country: 'India' },
+      'bn': { flag: '🇮🇳', country: 'India' },
+      'ta': { flag: '🇮🇳', country: 'India' },
+      'te': { flag: '🇮🇳', country: 'India' },
+      'ur': { flag: '🇵🇰', country: 'Pakistan' },
+      'uk': { flag: '🇺🇦', country: 'Ukraine' },
+      'he': { flag: '🇮🇱', country: 'Israel' },
+      'fa': { flag: '🇮🇷', country: 'Iran' },
+      'af': { flag: '🇿🇦', country: 'South Africa' },
+      'sw': { flag: '🇰🇪', country: 'Kenya' },
+      'hr': { flag: '🇭🇷', country: 'Croatia' },
+      'sr': { flag: '🇷🇸', country: 'Serbia' },
+      'bg': { flag: '🇧🇬', country: 'Bulgaria' },
+    };
+
+    function getVoiceCountryInfo(voice) {
+      const labels = voice.labels || {};
+      const accent = (labels.accent || '').toLowerCase().trim();
+      const language = (labels.language || '').toLowerCase().trim();
+      const langCode = (voice.fine_tuning?.language || '').toLowerCase().trim();
+
+      // 1. BEST SOURCE: verified_languages[0].locale (e.g. "en-US", "en-GB", "en-AU")
+      const verifiedLangs = voice.verified_languages || [];
+      if (verifiedLangs.length > 0) {
+        const primary = verifiedLangs[0];
+        const locale = (primary.locale || '').trim();
+        if (locale && LOCALE_COUNTRY_MAP[locale]) {
+          return { flag: LOCALE_COUNTRY_MAP[locale].flag, country: LOCALE_COUNTRY_MAP[locale].country };
+        }
+        // Try accent from verified_languages (e.g. "american", "british", "australian")
+        const vAccent = (primary.accent || '').toLowerCase().trim();
+        if (vAccent && vAccent !== 'standard' && ACCENT_COUNTRY_MAP[vAccent]) {
+          return { flag: ACCENT_COUNTRY_MAP[vAccent].flag, country: ACCENT_COUNTRY_MAP[vAccent].country };
+        }
+      }
+
+      // 2. FALLBACK: labels.accent (e.g. "american", "british")
+      if (accent && accent !== 'standard') {
+        for (const [key, info] of Object.entries(ACCENT_COUNTRY_MAP)) {
+          if (accent === key || accent.includes(key)) return { flag: info.flag, country: info.country };
+        }
+      }
+
+      // 3. FALLBACK: labels.language label as text
+      if (language) {
+        for (const [key, info] of Object.entries(ACCENT_COUNTRY_MAP)) {
+          if (language === key || language.includes(key)) return { flag: info.flag, country: info.country };
+        }
+      }
+
+      // 4. FALLBACK: fine_tuning.language code (e.g. "en", "fr", "de")
+      if (langCode) {
+        if (LANG_CODE_COUNTRY_MAP[langCode]) {
+          return { flag: LANG_CODE_COUNTRY_MAP[langCode].flag, country: LANG_CODE_COUNTRY_MAP[langCode].country };
+        }
+        // Try base language from code like "en-us" → "en"
+        const baseLang = langCode.split('-')[0];
+        if (LANG_CODE_COUNTRY_MAP[baseLang]) {
+          return { flag: LANG_CODE_COUNTRY_MAP[baseLang].flag, country: LANG_CODE_COUNTRY_MAP[baseLang].country };
+        }
+      }
+
+      // 5. LAST RESORT: check voice name for keywords
+      const nameLower = (voice.name || '').toLowerCase();
+      for (const [key, info] of Object.entries(ACCENT_COUNTRY_MAP)) {
+        if (nameLower.includes(key)) return { flag: info.flag, country: info.country };
+      }
+
+      return { flag: '🌐', country: 'Multilingual' };
+    }
+
+    function buildVoiceDisplayText(voice) {
+      const info = getVoiceCountryInfo(voice);
+      const labels = voice.labels || {};
+      const gender = labels.gender ? labels.gender.charAt(0).toUpperCase() + labels.gender.slice(1) : '';
+      const age = labels.age ? (labels.age.replace(/_/g, ' ')).replace(/\b\w/g, c => c.toUpperCase()) : '';
+      let suffix = info.country;
+      if (gender) suffix += ' · ' + gender;
+      if (age) suffix += ' · ' + age;
+      return info.flag + ' ' + voice.name + ' — ' + suffix;
+    }
+
+    /* === VOICE FILTER & SEARCH ENGINE === */
+    let activeFilters = { tts: 'all', vc: 'all' };
+    let searchQueries = { tts: '', vc: '' };
+
+    function getFilteredVoices(prefix) {
+      let filtered = voices;
+      const filter = activeFilters[prefix === 'voice' ? 'tts' : prefix];
+      if (filter && filter !== 'all') {
+        filtered = filtered.filter(v => {
+          const info = getVoiceCountryInfo(v);
+          return info.flag === filter;
+        });
+      }
+      const query = searchQueries[prefix === 'voice' ? 'tts' : prefix];
+      if (query) {
+        const q = query.toLowerCase();
+        filtered = filtered.filter(v => {
+          const labels = v.labels || {};
+          const searchStr = [
+            v.name, labels.accent, labels.language, labels.gender, labels.age,
+            labels.use_case, v.category, getVoiceCountryInfo(v).country
+          ].filter(Boolean).join(' ').toLowerCase();
+          return searchStr.includes(q);
+        });
+      }
+      return filtered;
+    }
+
+    function populateSelect(selectId, prefix) {
+      const sel = $(selectId);
+      const prevVal = sel.value;
+      const filtered = getFilteredVoices(prefix);
+      sel.innerHTML = '<option value="">— SELECT VOICE (' + filtered.length + ') —</option>';
+      filtered.forEach(v => {
+        const o = document.createElement('option');
+        o.value = v.voice_id;
+        o.textContent = buildVoiceDisplayText(v);
+        sel.appendChild(o);
+      });
+      // Restore previous selection if still available
+      if (prevVal && filtered.some(v => v.voice_id === prevVal)) sel.value = prevVal;
+      // Update voice count display
+      const countId = prefix === 'voice' ? 'tts-voice-count' : prefix + '-voice-count';
+      if ($(countId)) $(countId).textContent = filtered.length + ' / ' + voices.length + ' VOICES';
+    }
+
+    function buildFilterBar(barId, prefix) {
+      const bar = $(barId);
+      if (!bar) return;
+      bar.innerHTML = '';
+      // Collect unique country flags
+      const flagMap = new Map(); // flag -> count
+      voices.forEach(v => {
+        const info = getVoiceCountryInfo(v);
+        flagMap.set(info.flag, (flagMap.get(info.flag) || 0) + 1);
+      });
+      // Sort by count descending
+      const sorted = [...flagMap.entries()].sort((a, b) => b[1] - a[1]);
+      // All chip
+      const allChip = document.createElement('button');
+      allChip.className = 'filter-chip all-chip active';
+      allChip.type = 'button';
+      allChip.innerHTML = '◆ ALL (' + voices.length + ')';
+      allChip.onclick = () => {
+        activeFilters[prefix] = 'all';
+        bar.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        allChip.classList.add('active');
+        populateSelect(prefix === 'tts' ? 'voice-select' : prefix + '-voice-select', prefix === 'tts' ? 'voice' : prefix);
+      };
+      bar.appendChild(allChip);
+      // Country chips
+      sorted.forEach(([flag, count]) => {
+        const chip = document.createElement('button');
+        chip.className = 'filter-chip';
+        chip.type = 'button';
+        chip.innerHTML = '<span class="chip-flag">' + flag + '</span>' + count;
+        chip.onclick = () => {
+          activeFilters[prefix] = flag;
+          bar.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+          chip.classList.add('active');
+          populateSelect(prefix === 'tts' ? 'voice-select' : prefix + '-voice-select', prefix === 'tts' ? 'voice' : prefix);
+        };
+        bar.appendChild(chip);
+      });
+    }
+
+    function setupVoiceSearch(inputId, selectId, prefix) {
+      const input = $(inputId);
+      if (!input) return;
+      input.disabled = false;
+      input.oninput = () => {
+        searchQueries[prefix] = input.value.trim();
+        populateSelect(selectId, prefix === 'tts' ? 'voice' : prefix);
+      };
+    }
+
+    /* === FETCH VOICES === */
+    async function fetchVoices() {
+      try {
+        const res = await fetch('https://api.elevenlabs.io/v1/voices', { headers: { 'xi-api-key': API_KEY } });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const data = await res.json(); voices = data.voices || [];
+        // Build filter bars
+        buildFilterBar('tts-filter-bar', 'tts');
+        buildFilterBar('vc-filter-bar', 'vc');
+        // Populate selects with country info
+        populateSelect('voice-select', 'voice');
+        populateSelect('vc-voice-select', 'vc');
+        $('voice-select').disabled = false;
+        $('vc-voice-select').disabled = false;
+        // Setup search
+        setupVoiceSearch('tts-voice-search', 'voice-select', 'tts');
+        setupVoiceSearch('vc-voice-search', 'vc-voice-select', 'vc');
+        $('tts-text').disabled = false;
+        // Log country stats
+        const flagStats = new Map();
+        voices.forEach(v => { const info = getVoiceCountryInfo(v); const key = info.flag + ' ' + info.country; flagStats.set(key, (flagStats.get(key) || 0) + 1); });
+        addLog('success', 'Voice catalog loaded: ' + voices.length + ' voices from ' + flagStats.size + ' regions');
+        const topCountries = [...flagStats.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, v]) => k + '(' + v + ')').join(', ');
+        addLog('info', 'Top regions: ' + topCountries);
+      } catch (e) { addLog('error', 'VOICE_CATALOG_UNAVAILABLE — ' + e.message); }
+    }
+
+    /* === LOGOUT === */
+    function doLogout() {
+      try { localStorage.removeItem('_ej_ak'); } catch(e) {}
+      Object.keys(currentModuleAudio).forEach(k => { if (currentModuleAudio[k]) currentModuleAudio[k].pause(); });
+      Object.keys(currentModuleBlobUrl).forEach(k => { if (currentModuleBlobUrl[k]) URL.revokeObjectURL(currentModuleBlobUrl[k]); });
+      currentModuleAudio = {}; currentModuleBlobUrl = {}; API_KEY = ''; voices = []; isAuthing = false;
+      activeFilters = { tts: 'all', vc: 'all' }; searchQueries = { tts: '', vc: '' };
+      $('tts-filter-bar').innerHTML = ''; $('vc-filter-bar').innerHTML = '';
+      if ($('tts-voice-search')) { $('tts-voice-search').value = ''; $('tts-voice-search').disabled = true; }
+      if ($('vc-voice-search')) { $('vc-voice-search').value = ''; $('vc-voice-search').disabled = true; }
+      $('tts-voice-count').textContent = ''; $('vc-voice-count').textContent = '';
+      const apiInput = $('api-key'); apiInput.value = ''; apiInput.type = 'password'; apiInput.disabled = false; apiInput.classList.remove('err', 'ok');
+      vis = false; $('eye-on').style.display = 'block'; $('eye-off').style.display = 'none';
+      $('auth-btn').disabled = false; $('auth-btn').classList.remove('loading', 'ok-state', 'err-state'); $('auth-btn-txt').innerHTML = '▶ AUTHENTICATE';
+      $('auth-prog').classList.remove('active'); $('auth-prog-fill').style.width = '0'; $('auth-prog-fill').style.background = '';
+      $('logout-btn').classList.remove('visible'); $('tab-nav').classList.remove('visible'); $('modules-container').classList.remove('visible');
+      // Reset all panels
+      panels.forEach(p => p.classList.remove('active')); $('panel-tts').classList.add('active');
+      tabBtns.forEach(b => b.classList.remove('active')); tabBtns[0].classList.add('active');
+      // Reset Quota
+      $('quota-bar').classList.remove('visible'); $('quota-value').textContent = '—'; $('quota-fill').style.width = '0'; $('quota-plan').textContent = '';
+      // Reset TTS
+      $('voice-select').innerHTML = '<option value="">— SELECT VOICE —</option>'; $('voice-select').disabled = true;
+      $('tts-text').value = ''; $('tts-text').disabled = true; $('char-count').textContent = '0 / 2500';
+      $('tts-model').value = 'eleven_multilingual_v2'; $('tts-output-fmt').value = 'mp3_44100_128';
+      $('vs-stability').value = 0.5; $('vs-stab-val').textContent = '0.50';
+      $('vs-similarity').value = 0.75; $('vs-sim-val').textContent = '0.75';
+      $('vs-style').value = 0; $('vs-style-val').textContent = '0.00';
+      $('vs-boost-toggle').classList.remove('on'); $('vs-body').classList.remove('visible'); $('vs-toggle').classList.remove('open');
+      $('tts-preview-btn').disabled = true;
+      if (previewAudioGlobal) { previewAudioGlobal.pause(); previewAudioGlobal = null; }
+      $('synth-btn').disabled = true; $('synth-btn').classList.remove('loading', 'ok-state', 'err-state'); $('synth-btn-txt').innerHTML = '▶ SYNTHESIZE';
+      $('synth-prog').classList.remove('active'); $('synth-prog-fill').style.width = '0'; $('tts-player').classList.remove('visible');
+      // Reset SFX
+      $('sfx-text').value = ''; $('sfx-char-count').textContent = '0 / 1000'; $('sfx-duration').value = 0; $('sfx-dur-val').textContent = 'AUTO';
+      $('sfx-loop-toggle').classList.remove('on'); $('sfx-btn').classList.remove('loading', 'ok-state', 'err-state'); $('sfx-btn-txt').innerHTML = '▶ GENERATE SFX';
+      $('sfx-prog').classList.remove('active'); $('sfx-prog-fill').style.width = '0'; $('sfx-player').classList.remove('visible');
+      // Reset VC
+      $('vc-voice-select').innerHTML = '<option value="">— SELECT VOICE —</option>'; $('vc-voice-select').disabled = true;
+      $('vc-file').value = ''; $('vc-file-info').textContent = ''; $('vc-drop').classList.remove('has-file');
+      vcFile = null; $('vc-btn').disabled = true; $('vc-btn').classList.remove('loading', 'ok-state', 'err-state'); $('vc-btn-txt').innerHTML = '▶ TRANSFORM VOICE';
+      $('vc-prog').classList.remove('active'); $('vc-prog-fill').style.width = '0'; $('vc-player').classList.remove('visible');
+      // Reset ISO
+      $('iso-file').value = ''; $('iso-file-info').textContent = ''; $('iso-drop').classList.remove('has-file');
+      isoFile = null; $('iso-btn').disabled = true; $('iso-btn').classList.remove('loading', 'ok-state', 'err-state'); $('iso-btn-txt').innerHTML = '▶ ISOLATE VOICE';
+      $('iso-prog').classList.remove('active'); $('iso-prog-fill').style.width = '0'; $('iso-player').classList.remove('visible');
+      // Reset STT
+      $('stt-file').value = ''; $('stt-file-info').textContent = ''; $('stt-drop').classList.remove('has-file');
+      sttFile = null; $('stt-btn').disabled = true; $('stt-btn').classList.remove('loading', 'ok-state', 'err-state'); $('stt-btn-txt').innerHTML = '▶ TRANSCRIBE';
+      $('stt-prog').classList.remove('active'); $('stt-prog-fill').style.width = '0'; $('stt-result').classList.remove('visible'); $('stt-transcript').textContent = '';
+      // Reset all recorders
+      Object.keys(recorderInstances).forEach(k => { if (recorderInstances[k].resetUI) recorderInstances[k].resetUI(); });
+      consoleLog.innerHTML = ''; setStatus('off', 'DISCONNECTED'); $('ascii-hdr').classList.remove('glitch');
+      setTimeout(() => apiInput.focus(), 100);
+    }
+    $('logout-btn').onclick = doLogout;
+
+    /* ============================================================
+       MODULE 1: TTS
+       ============================================================ */
+    let isSynth = false;
+    let previewAudioGlobal = null;
+    $('tts-text').oninput = () => { const len = $('tts-text').value.length; $('char-count').textContent = len + ' / 2500'; $('char-count').className = 'char-count'; if (len > 2000) $('char-count').classList.add('max'); else if (len > 1500) $('char-count').classList.add('high'); else if (len > 500) $('char-count').classList.add('mid'); updateSynthBtn(); };
+    function updateSynthBtn() { $('synth-btn').disabled = !($('voice-select').value && $('tts-text').value.trim().length > 0 && !isSynth); }
+    $('voice-select').onchange = () => { updateSynthBtn(); $('tts-preview-btn').disabled = !$('voice-select').value; };
+
+    /* === VOICE SETTINGS UI === */
+    $('vs-toggle').onclick = function() { this.classList.toggle('open'); $('vs-body').classList.toggle('visible'); };
+    $('vs-stability').oninput = () => { $('vs-stab-val').textContent = parseFloat($('vs-stability').value).toFixed(2); };
+    $('vs-similarity').oninput = () => { $('vs-sim-val').textContent = parseFloat($('vs-similarity').value).toFixed(2); };
+    $('vs-style').oninput = () => { $('vs-style-val').textContent = parseFloat($('vs-style').value).toFixed(2); };
+    $('vs-boost-toggle').onclick = function() { this.classList.toggle('on'); };
+
+    /* === VOICE PREVIEW === */
+    $('tts-preview-btn').onclick = async () => {
+      const voiceId = $('voice-select').value;
+      if (!voiceId) return;
+      if (previewAudioGlobal && !previewAudioGlobal.paused) { previewAudioGlobal.pause(); previewAudioGlobal = null; $('tts-preview-btn').innerHTML = '<svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> PREVIEW VOICE'; return; }
+      const voice = voices.find(v => v.voice_id === voiceId);
+      if (voice && voice.preview_url) {
+        previewAudioGlobal = new Audio(voice.preview_url);
+        previewAudioGlobal.play();
+        $('tts-preview-btn').innerHTML = '<svg viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> STOP';
+        previewAudioGlobal.onended = () => { $('tts-preview-btn').innerHTML = '<svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg> PREVIEW VOICE'; };
+        addLog('info', 'Playing voice preview: ' + voice.name);
+      } else {
+        addLog('warn', 'No preview available for this voice');
+      }
+    };
+
+    async function doSynthesize() {
+      if (isSynth) return; if (!checkCooldown()) return;
+      const voiceId = $('voice-select').value, text = $('tts-text').value.trim(); if (!voiceId || !text) return;
+      const modelId = $('tts-model').value;
+      const outputFmt = $('tts-output-fmt').value;
+      const stability = parseFloat($('vs-stability').value);
+      const similarity = parseFloat($('vs-similarity').value);
+      const style = parseFloat($('vs-style').value);
+      const speakerBoost = $('vs-boost-toggle').classList.contains('on');
+      isSynth = true; $('synth-btn').disabled = true; $('synth-btn').classList.add('loading'); $('synth-btn-txt').innerHTML = '<span class="spinner"></span>SYNTHESIZING...';
+      $('synth-prog').classList.add('active'); $('synth-prog-fill').style.width = '10%';
+      setStatus('proc', 'PROCESSING — NEURAL SYNTHESIS'); addLog('info', 'Queuing synthesis job... [Model: ' + modelId + ']');
+      $('tts-player').classList.remove('visible');
+      await sleep(300); $('synth-prog-fill').style.width = '30%'; addLog('info', 'Sending text to neural network...');
+      try {
+        $('synth-prog-fill').style.width = '50%';
+        const voiceSettings = { stability, similarity_boost: similarity, style, use_speaker_boost: speakerBoost };
+        const res = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId + '?output_format=' + outputFmt, { method: 'POST', headers: { 'xi-api-key': API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text, model_id: modelId, voice_settings: voiceSettings }) });
+        $('synth-prog-fill').style.width = '80%';
+        if (!res.ok) { const err = await res.json().catch(() => ({ detail: 'Synthesis failed' })); throw new Error(err.detail?.message || err.detail || 'HTTP ' + res.status); }
+        const blob = await res.blob(); $('synth-prog-fill').style.width = '100%';
+        addLog('success', 'Audio generated: ' + (blob.size / 1024).toFixed(1) + 'KB [' + outputFmt + ']');
+        setStatus('on', 'COMPLETE — AUDIO READY');
+        const blobUrl = URL.createObjectURL(blob); setupPlayer('tts', new Audio(blobUrl), blobUrl);
+        $('synth-btn').classList.remove('loading'); $('synth-btn').classList.add('ok-state'); $('synth-btn-txt').innerHTML = '▶ RE-SYNTHESIZE';
+        fetchQuota(); // Refresh quota after synthesis
+      } catch (e) {
+        addLog('error', 'TTS_FAILED — ' + e.message); setStatus('bad', 'FAILED');
+        $('synth-btn').classList.remove('loading'); $('synth-btn').classList.add('err-state'); $('synth-btn-txt').innerHTML = '▶ RETRY';
+        $('synth-prog-fill').style.background = 'var(--red)';
+        setTimeout(() => { setStatus('on', 'READY'); $('synth-btn').classList.remove('err-state'); $('synth-prog-fill').style.background = ''; }, 2500);
+      }
+      isSynth = false; $('synth-btn').disabled = false; setTimeout(() => { $('synth-prog-fill').style.width = '0'; $('synth-prog').classList.remove('active'); }, 600); updateSynthBtn();
+    }
+    $('synth-btn').onclick = doSynthesize;
+
+    /* ============================================================
+       MODULE 2: SFX
+       ============================================================ */
+    $('sfx-text').oninput = () => { const len = $('sfx-text').value.length; $('sfx-char-count').textContent = len + ' / 1000'; $('sfx-char-count').className = 'char-count'; if (len > 800) $('sfx-char-count').classList.add('max'); else if (len > 500) $('sfx-char-count').classList.add('high'); else if (len > 200) $('sfx-char-count').classList.add('mid'); };
+    $('sfx-duration').oninput = () => { const v = parseFloat($('sfx-duration').value); $('sfx-dur-val').textContent = v === 0 ? 'AUTO' : v.toFixed(1) + 's'; };
+    $('sfx-loop-toggle').onclick = function () { this.classList.toggle('on'); };
+
+    async function doSfx() {
+      const text = $('sfx-text').value.trim(); if (!text) { addLog('error', 'Describe the sound effect'); return; }
+      if (!checkCooldown()) return;
+      $('sfx-btn').disabled = true; $('sfx-btn').classList.add('loading'); $('sfx-btn-txt').innerHTML = '<span class="spinner"></span>GENERATING...';
+      $('sfx-prog').classList.add('active'); $('sfx-prog-fill').style.width = '15%';
+      setStatus('proc', 'GENERATING SOUND EFFECT'); addLog('info', 'Sending SFX prompt...'); $('sfx-player').classList.remove('visible');
+      const dur = parseFloat($('sfx-duration').value); const loop = $('sfx-loop-toggle').classList.contains('on');
+      const body = { text }; if (dur > 0) body.duration_seconds = dur; if (loop) body.prompt_influence = 0.3;
+      try {
+        await sleep(400); $('sfx-prog-fill').style.width = '40%';
+        const res = await fetch('https://api.elevenlabs.io/v1/sound-generation', { method: 'POST', headers: { 'xi-api-key': API_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+        $('sfx-prog-fill').style.width = '80%';
+        if (!res.ok) { const err = await res.json().catch(() => ({ detail: 'SFX failed' })); throw new Error(err.detail?.message || err.detail || 'HTTP ' + res.status); }
+        const blob = await res.blob(); $('sfx-prog-fill').style.width = '100%';
+        addLog('success', 'SFX generated: ' + (blob.size / 1024).toFixed(1) + 'KB'); setStatus('on', 'SFX READY');
+        const blobUrl = URL.createObjectURL(blob); setupPlayer('sfx', new Audio(blobUrl), blobUrl);
+        $('sfx-btn').classList.remove('loading'); $('sfx-btn').classList.add('ok-state'); $('sfx-btn-txt').innerHTML = '▶ RE-GENERATE';
+      } catch (e) {
+        addLog('error', 'SFX_FAILED — ' + e.message); setStatus('bad', 'SFX FAILED');
+        $('sfx-btn').classList.remove('loading'); $('sfx-btn').classList.add('err-state'); $('sfx-btn-txt').innerHTML = '▶ RETRY';
+        $('sfx-prog-fill').style.background = 'var(--red)';
+        setTimeout(() => { setStatus('on', 'READY'); $('sfx-btn').classList.remove('err-state'); $('sfx-prog-fill').style.background = ''; }, 2500);
+      }
+      $('sfx-btn').disabled = false; setTimeout(() => { $('sfx-prog-fill').style.width = '0'; $('sfx-prog').classList.remove('active'); }, 600);
+    }
+    $('sfx-btn').onclick = doSfx;
+
+    /* ============================================================
+       MODULE 3: VOICE CHANGER
+       ============================================================ */
+    /* vcFile already declared in globals */
+    setupDropZone('vc-drop', 'vc-file', 'vc-file-info', f => { vcFile = f; addLog('info', 'VC audio loaded: ' + f.name); updateVcBtn(); });
+    setupRecorder('vc', file => {
+      vcFile = file;
+      $('vc-file-info').textContent = '✓ ' + file.name + ' (' + (file.size / 1024).toFixed(1) + 'KB)';
+      $('vc-drop').classList.add('has-file');
+      updateVcBtn();
+    });
+    $('vc-voice-select').onchange = () => updateVcBtn();
+    function updateVcBtn() { $('vc-btn').disabled = !(vcFile && $('vc-voice-select').value); }
+
+    async function doVc() {
+      if (!vcFile || !$('vc-voice-select').value) return;
+      $('vc-btn').disabled = true; $('vc-btn').classList.add('loading'); $('vc-btn-txt').innerHTML = '<span class="spinner"></span>TRANSFORMING...';
+      $('vc-prog').classList.add('active'); $('vc-prog-fill').style.width = '15%';
+      setStatus('proc', 'TRANSFORMING VOICE'); addLog('info', 'Uploading audio for voice conversion...'); $('vc-player').classList.remove('visible');
+      const vcModelId = $('vc-model').value;
+      const fd = new FormData(); fd.append('audio', vcFile); fd.append('model_id', vcModelId);
+      try {
+        await sleep(400); $('vc-prog-fill').style.width = '40%';
+        const res = await fetch('https://api.elevenlabs.io/v1/speech-to-speech/' + $('vc-voice-select').value, { method: 'POST', headers: { 'xi-api-key': API_KEY }, body: fd });
+        $('vc-prog-fill').style.width = '80%';
+        if (!res.ok) { const err = await res.json().catch(() => ({ detail: 'Voice change failed' })); throw new Error(err.detail?.message || err.detail || 'HTTP ' + res.status); }
+        const blob = await res.blob(); $('vc-prog-fill').style.width = '100%';
+        addLog('success', 'Voice transformed: ' + (blob.size / 1024).toFixed(1) + 'KB'); setStatus('on', 'VOICE TRANSFORMED');
+        const blobUrl = URL.createObjectURL(blob); setupPlayer('vc', new Audio(blobUrl), blobUrl);
+        $('vc-btn').classList.remove('loading'); $('vc-btn').classList.add('ok-state'); $('vc-btn-txt').innerHTML = '▶ RE-TRANSFORM';
+      } catch (e) {
+        addLog('error', 'VC_FAILED — ' + e.message); setStatus('bad', 'TRANSFORM FAILED');
+        $('vc-btn').classList.remove('loading'); $('vc-btn').classList.add('err-state'); $('vc-btn-txt').innerHTML = '▶ RETRY';
+        $('vc-prog-fill').style.background = 'var(--red)';
+        setTimeout(() => { setStatus('on', 'READY'); $('vc-btn').classList.remove('err-state'); $('vc-prog-fill').style.background = ''; }, 2500);
+      }
+      $('vc-btn').disabled = false; setTimeout(() => { $('vc-prog-fill').style.width = '0'; $('vc-prog').classList.remove('active'); }, 600); updateVcBtn();
+    }
+    $('vc-btn').onclick = doVc;
+
+    /* ============================================================
+       MODULE 4: AUDIO ISOLATOR
+       ============================================================ */
+    /* isoFile already declared in globals */
+    setupDropZone('iso-drop', 'iso-file', 'iso-file-info', f => { isoFile = f; addLog('info', 'ISO audio loaded: ' + f.name); $('iso-btn').disabled = false; });
+    setupRecorder('iso', file => {
+      isoFile = file;
+      $('iso-file-info').textContent = '✓ ' + file.name + ' (' + (file.size / 1024).toFixed(1) + 'KB)';
+      $('iso-drop').classList.add('has-file');
+      $('iso-btn').disabled = false;
+    });
+
+    async function doIso() {
+      if (!isoFile) return;
+      if (!checkCooldown()) return;
+      $('iso-btn').disabled = true; $('iso-btn').classList.add('loading'); $('iso-btn-txt').innerHTML = '<span class="spinner"></span>ISOLATING...';
+      $('iso-prog').classList.add('active'); $('iso-prog-fill').style.width = '15%';
+      setStatus('proc', 'ISOLATING VOICE'); addLog('info', 'Uploading audio for isolation...'); $('iso-player').classList.remove('visible');
+      const fd = new FormData(); fd.append('audio', isoFile);
+      try {
+        await sleep(400); $('iso-prog-fill').style.width = '40%';
+        const res = await fetch('https://api.elevenlabs.io/v1/audio-isolation', { method: 'POST', headers: { 'xi-api-key': API_KEY }, body: fd });
+        $('iso-prog-fill').style.width = '80%';
+        if (!res.ok) { const err = await res.json().catch(() => ({ detail: 'Isolation failed' })); throw new Error(err.detail?.message || err.detail || 'HTTP ' + res.status); }
+        const blob = await res.blob(); $('iso-prog-fill').style.width = '100%';
+        addLog('success', 'Audio isolated: ' + (blob.size / 1024).toFixed(1) + 'KB'); setStatus('on', 'ISOLATION COMPLETE');
+        const blobUrl = URL.createObjectURL(blob); setupPlayer('iso', new Audio(blobUrl), blobUrl);
+        $('iso-btn').classList.remove('loading'); $('iso-btn').classList.add('ok-state'); $('iso-btn-txt').innerHTML = '✓ ISOLATED';
+      } catch (e) {
+        addLog('error', 'ISO_FAILED — ' + e.message); setStatus('bad', 'ISOLATION FAILED');
+        $('iso-btn').classList.remove('loading'); $('iso-btn').classList.add('err-state'); $('iso-btn-txt').innerHTML = '▶ RETRY';
+        $('iso-prog-fill').style.background = 'var(--red)';
+        setTimeout(() => { setStatus('on', 'READY'); $('iso-btn').classList.remove('err-state'); $('iso-prog-fill').style.background = ''; }, 2500);
+      }
+      $('iso-btn').disabled = false; setTimeout(() => { $('iso-prog-fill').style.width = '0'; $('iso-prog').classList.remove('active'); }, 600);
+    }
+    $('iso-btn').onclick = doIso;
+
+    /* ============================================================
+       MODULE 5: SCRIBE (STT)
+       ============================================================ */
+    /* sttFile already declared in globals */
+    setupDropZone('stt-drop', 'stt-file', 'stt-file-info', f => { sttFile = f; addLog('info', 'STT audio loaded: ' + f.name); $('stt-btn').disabled = false; });
+    setupRecorder('stt', file => {
+      sttFile = file;
+      $('stt-file-info').textContent = '✓ ' + file.name + ' (' + (file.size / 1024).toFixed(1) + 'KB)';
+      $('stt-drop').classList.add('has-file');
+      $('stt-btn').disabled = false;
+    });
+
+    async function doStt() {
+      if (!sttFile) return;
+      if (!checkCooldown()) return;
+      $('stt-btn').disabled = true; $('stt-btn').classList.add('loading'); $('stt-btn-txt').innerHTML = '<span class="spinner"></span>TRANSCRIBING...';
+      $('stt-prog').classList.add('active'); $('stt-prog-fill').style.width = '15%';
+      setStatus('proc', 'TRANSCRIBING AUDIO'); addLog('info', 'Uploading audio for transcription...'); $('stt-result').classList.remove('visible');
+      const fd = new FormData(); fd.append('file', sttFile); fd.append('model_id', 'scribe_v1');
+      try {
+        await sleep(400); $('stt-prog-fill').style.width = '40%';
+        const res = await fetch('https://api.elevenlabs.io/v1/speech-to-text', { method: 'POST', headers: { 'xi-api-key': API_KEY }, body: fd });
+        $('stt-prog-fill').style.width = '80%';
+        if (!res.ok) { const err = await res.json().catch(() => ({ detail: 'Transcription failed' })); throw new Error(err.detail?.message || err.detail || 'HTTP ' + res.status); }
+        const data = await res.json(); $('stt-prog-fill').style.width = '100%';
+        const transcript = data.text || data.transcript || JSON.stringify(data);
+        $('stt-transcript').textContent = transcript; $('stt-result').classList.add('visible');
+        addLog('success', 'Transcription complete: ' + transcript.length + ' characters'); setStatus('on', 'TRANSCRIPTION READY');
+        $('stt-btn').classList.remove('loading'); $('stt-btn').classList.add('ok-state'); $('stt-btn-txt').innerHTML = '✓ TRANSCRIBED';
+      } catch (e) {
+        addLog('error', 'STT_FAILED — ' + e.message); setStatus('bad', 'TRANSCRIPTION FAILED');
+        $('stt-btn').classList.remove('loading'); $('stt-btn').classList.add('err-state'); $('stt-btn-txt').innerHTML = '▶ RETRY';
+        $('stt-prog-fill').style.background = 'var(--red)';
+        setTimeout(() => { setStatus('on', 'READY'); $('stt-btn').classList.remove('err-state'); $('stt-prog-fill').style.background = ''; }, 2500);
+      }
+      $('stt-btn').disabled = false; setTimeout(() => { $('stt-prog-fill').style.width = '0'; $('stt-prog').classList.remove('active'); }, 600);
+    }
+    $('stt-btn').onclick = doStt;
+    $('stt-copy-btn').onclick = () => { const t = $('stt-transcript').textContent; if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(t).then(() => { addLog('success', 'Transcript copied to clipboard'); $('stt-copy-btn').textContent = '✓ COPIED'; setTimeout(() => $('stt-copy-btn').textContent = '⧉ COPY', 2000); }).catch(() => { fallbackCopy(t); }); } else { fallbackCopy(t); } };
+    function fallbackCopy(text) { const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); addLog('success', 'Transcript copied (fallback)'); $('stt-copy-btn').textContent = '✓ COPIED'; setTimeout(() => $('stt-copy-btn').textContent = '⧉ COPY', 2000); } catch(e) { addLog('error', 'Copy failed — please copy manually'); } document.body.removeChild(ta); }
+
+    /* ============================================================
+       BUY ACCOUNT MODAL
+       ============================================================ */
+    (function () {
+      const btn = $('buy-acc-btn'), overlay = $('buy-overlay'), closeBtn = $('buy-m-close'), statusEl = $('buy-status');
+      const inlineCta = $('auth-cta-buy');
+      function updateStatus() {
+        const now = new Date(); const h = now.getHours();
+        // Open 09:00 (9) to 01:00 AM next day (25 = 1AM)
+        const isOpen = (h >= 9) || (h < 1);
+        statusEl.innerHTML = '<span class="buy-status-dot ' + (isOpen ? 'live' : 'offline') + '"></span><span class="buy-status-text" style="color:' + (isOpen ? 'var(--green)' : 'var(--red)') + '">' + (isOpen ? 'ONLINE — WE ARE AVAILABLE' : 'OFFLINE — OUTSIDE HOURS') + '</span>';
+      }
+      function openModal() { overlay.classList.add('active'); updateStatus(); }
+      function closeModal() { overlay.classList.remove('active'); }
+      btn.onclick = openModal;
+      if (inlineCta) inlineCta.onclick = openModal;
+      closeBtn.onclick = closeModal;
+      overlay.onclick = e => { if (e.target === overlay) closeModal(); };
+      document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.classList.contains('active')) closeModal(); });
+      updateStatus(); setInterval(updateStatus, 60000);
+    })();
+
+    /* ============================================================
+       AUTO-RECONNECT FROM SAVED SESSION
+       ============================================================ */
+    (function autoReconnect() {
+      try {
+        const saved = localStorage.getItem('_ej_ak');
+        if (saved) {
+          const key = atob(saved);
+          if (key && key.length >= 10) {
+            $('api-key').value = key;
+            // Skip boot animation and auto-auth immediately
+            if (window._skipBoot) window._skipBoot();
+            setTimeout(() => {
+              addLog('info', 'Saved session detected — auto-reconnecting...');
+              doAuth();
+            }, 500);
+          }
+        }
+      } catch(e) {}
+    })();
+
+    /* ============================================================
+       API QUOTA DISPLAY
+       ============================================================ */
+    async function fetchQuota() {
+      try {
+        const res = await fetch('https://api.elevenlabs.io/v1/user/subscription', { headers: { 'xi-api-key': API_KEY } });
+        if (!res.ok) return;
+        const data = await res.json();
+        const used = data.character_count || 0;
+        const limit = data.character_limit || 0;
+        const remaining = Math.max(0, limit - used);
+        const pct = limit > 0 ? (used / limit * 100) : 0;
+        $('quota-value').textContent = remaining.toLocaleString() + ' / ' + limit.toLocaleString();
+        $('quota-fill').style.width = pct + '%';
+        $('quota-fill').className = 'quota-fill';
+        if (pct > 90) $('quota-fill').classList.add('danger');
+        else if (pct > 70) $('quota-fill').classList.add('warn');
+        $('quota-plan').textContent = '◆ ' + (data.tier || 'Free') + ' Plan · ' + Math.round(100 - pct) + '% remaining';
+        $('quota-bar').classList.add('visible');
+        addLog('info', 'Quota: ' + remaining.toLocaleString() + ' characters remaining (' + Math.round(100 - pct) + '%)');
+      } catch(e) { /* silently fail */ }
+    }
+  </script>
+</body>
+
+</html>
